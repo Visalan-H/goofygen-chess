@@ -1,38 +1,72 @@
 @import "tailwindcss";
 
 @theme {
+  --radius: 0.5rem;
   --color-background: #09090b;
   --color-foreground: #fafafa;
-  --color-card: #09090b;
-  --color-card-foreground: #fafafa;
-  --color-popover: #09090b;
-  --color-popover-foreground: #fafafa;
+  --color-card: #18181b;
   --color-primary: #fafafa;
-  --color-primary-foreground: #18181b;
+  --color-primary-foreground: #09090b;
   --color-secondary: #27272a;
   --color-secondary-foreground: #fafafa;
-  --color-muted: #27272a;
   --color-muted-foreground: #a1a1aa;
-  --color-accent: #27272a;
-  --color-accent-foreground: #fafafa;
-  --color-destructive: #7f1d1d;
-  --color-destructive-foreground: #fafafa;
+  --color-destructive: #ef4444;
   --color-border: #27272a;
   --color-input: #27272a;
-  --color-ring: #d4d4d8;
-  
-  /* Map standard tailwind colors to these heavily used ones */
+  --color-ring: #52525b;
   --color-zinc-950: #09090b;
   --color-zinc-900: #18181b;
   --color-zinc-800: #27272a;
   --color-zinc-700: #3f3f46;
-  --color-zinc-100: #f4f4f5;
-  --color-zinc-50: #fafafa;
+  --color-zinc-600: #52525b;
+  --color-zinc-500: #71717a;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-200: #e4e4e7;
 }
 
+* { border-color: var(--color-border); }
+
 body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: system-ui, -apple-system, sans-serif;
 }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  height: 2.5rem;
+  padding: 0 1rem;
+  transition: all 150ms;
+  cursor: pointer;
+}
+
+.btn:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.btn-primary { background: var(--color-primary); color: var(--color-primary-foreground); }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary { background: var(--color-secondary); color: var(--color-secondary-foreground); border: 1px solid var(--color-border); }
+.btn-secondary:hover { background: var(--color-zinc-700); }
+.btn-ghost { background: transparent; color: var(--color-foreground); }
+.btn-ghost:hover { background: var(--color-secondary); }
+.btn-destructive { background: var(--color-destructive); color: white; }
+.btn-destructive:hover { opacity: 0.9; }
+
+.input {
+  display: flex;
+  height: 2.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-input);
+  background: var(--color-background);
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+  transition: border-color 150ms;
+}
+
+.input::placeholder { color: var(--color-muted-foreground); }
+.input:focus { outline: none; border-color: var(--color-ring); }

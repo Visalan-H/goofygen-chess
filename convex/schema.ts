@@ -18,6 +18,8 @@ export default defineSchema({
     pgn: v.string(),    // Standard chess notation standard
     playerWhite: v.id("users"),
     playerBlack: v.optional(v.id("users")),
+    whiteLeft: v.optional(v.boolean()), // Track if white player left
+    blackLeft: v.optional(v.boolean()), // Track if black player left
     status: v.union(
       v.literal("waiting"),
       v.literal("in-progress"),
@@ -27,7 +29,8 @@ export default defineSchema({
     winner: v.optional(v.union(
       v.literal("white"),
       v.literal("black"),
-      v.literal("draw")
+      v.literal("draw"),
+      v.literal("abandoned") // New: both players left
     )),
     createdAt: v.number(),
   })

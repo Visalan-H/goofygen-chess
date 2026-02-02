@@ -9,6 +9,7 @@
  */
 
 import type * as games from "../games.js";
+import type * as lib_helpers from "../lib/helpers.js";
 import type * as messages from "../messages.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
@@ -21,6 +22,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   games: typeof games;
+  "lib/helpers": typeof lib_helpers;
   messages: typeof messages;
   users: typeof users;
   utils: typeof utils;
