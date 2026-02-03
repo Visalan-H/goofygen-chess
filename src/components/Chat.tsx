@@ -36,7 +36,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-[500px] lg:h-auto lg:min-h-[600px] w-full lg:w-80 border-l border-zinc-800 bg-zinc-900/30">
+    <div className="flex flex-col h-[350px] lg:h-auto lg:min-h-[600px] w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-zinc-800 bg-zinc-900/30">
       <div className="p-4 border-b border-zinc-800 text-xs text-zinc-500 font-medium tracking-wider uppercase">
         Chat
       </div>

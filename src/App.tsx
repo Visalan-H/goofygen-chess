@@ -112,7 +112,7 @@ function App() {
     return (
       <Layout>
         <div className="flex flex-col lg:flex-row">
-          <div className="flex-1 p-8 flex flex-col items-center gap-6">
+          <div className="flex-1 p-3 md:p-8 flex flex-col items-center gap-4 md:gap-6">
             {/* Game header */}
             <div className="w-full max-w-[480px] flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -159,7 +159,7 @@ function App() {
   if (currentGame && !gameState) {
     return (
       <Layout>
-        <div className="p-16 flex flex-col items-center justify-center gap-4">
+        <div className="p-8 md:p-16 flex flex-col items-center justify-center gap-4">
           <div className="w-8 h-8 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
           <p className="text-zinc-500 text-sm">Loading game...</p>
         </div>
@@ -170,7 +170,7 @@ function App() {
   // HOME VIEW
   return (
     <Layout>
-      <div className="p-12 md:p-16 flex flex-col items-center gap-10">
+      <div className="p-6 md:p-16 flex flex-col items-center gap-8 md:gap-10">
         {/* Hero */}
         <div className="text-center space-y-3">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
@@ -184,15 +184,15 @@ function App() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter your name"
-          className="input w-72 text-center"
+          className="input w-full max-w-sm text-center"
         />
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
-          <button onClick={handleCreate} className="btn btn-primary flex-1">
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          <button onClick={handleCreate} className="btn btn-primary w-full shadow-lg shadow-white/10">
             Create Game
           </button>
-          <button onClick={() => handleJoin()} className="btn btn-secondary flex-1">
+          <button onClick={() => handleJoin()} className="btn btn-secondary w-full">
             Quick Match
           </button>
         </div>
@@ -204,11 +204,11 @@ function App() {
             onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
             placeholder="Room code"
             maxLength={6}
-            className="input flex-1 text-center uppercase tracking-widest"
+            className="input flex-1 text-center uppercase tracking-widest bg-zinc-900/50"
           />
           <button 
             onClick={() => roomCode.trim() && handleJoin(roomCode)} 
-            className="btn btn-secondary"
+            className="btn btn-secondary px-6"
           >
             Join
           </button>
