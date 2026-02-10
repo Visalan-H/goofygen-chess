@@ -60,6 +60,31 @@ function App() {
     };
   }, [name, token, register, setOffline]);
 
+  useEffect(() => {
+    if (gameState?.status === "finished") {
+      let message = "";
+      let type: "info" | "success" | "error" = "info";
+
+      if (gameState.winner === "draw") {
+        message = "Draw! The game ended in a draw.";
+      } else if (gameState.winner === "abandoned") {
+        message = "Game Abandoned.";
+        type = "error";
+      } else {
+        const isSpectator = currentGame?.color === "s";
+        if (isSpectator) {
+           message = `Game Over. ${gameState.winner === "white" ? gameState.whiteName : gameState.blackName} won!`;
+        } else {
+          const myWinnerKey = currentGame?.color === "w" ? "white" : "black";
+          const iWon = myWinnerKey === gameState.winner;
+          message = iWon ? "You Won! 🎉 Great game!" : "You Lost 😔 Better luck next time.";
+          type = iWon ? "success" : "error";
+        }
+      }
+      toast(message, type);
+    }
+  }, [gameState?.status, gameState?.winner, currentGame?.color, toast, gameState?.whiteName, gameState?.blackName]);
+
   const handleCreate = async () => {
     if (!name.trim()) return toast("Enter your name first", "error");
     const result = await createGame({ token });
@@ -96,25 +121,44 @@ function App() {
 
   // GAME VIEW
   if (currentGame && gameState) {
-    const isWhite = currentGame.color === "w";
-    const myName = isWhite ? gameState.whiteName : gameState.blackName;
-    const oppName = isWhite ? gameState.blackName : gameState.whiteName;
-    const isMyTurn = gameState.turn === currentGame.color && gameState.status === "in-progress";
-    
+    const isSpectator = currentGame.color === "s";
+    const bottomIsWhite = currentGame.color !== "b";
+    const topName = bottomIsWhite ? gameState.blackName : gameState.whiteName;
+    const bottomName = bottomIsWhite ? gameState.whiteName : gameState.blackName;
+    const topColor = bottomIsWhite ? "b" : "w";
+    const bottomColor = bottomIsWhite ? "w" : "b";
+    const isMyTurn = !isSpectator && gameState.turn === currentGame.color && gameState.status === "in-progress";
+    const isTopActive = gameState.turn === topColor && gameState.status === "in-progress";
+    const isBottomActive = gameState.turn === bottomColor && gameState.status === "in-progress";
+
     let status = "";
-    if (gameState.status === "waiting") status = "Waiting for opponent...";
-    else if (gameState.status === "in-progress") status = isMyTurn ? "Your turn" : "Opponent's turn";
-    else if (gameState.status === "finished") {
-      status = gameState.winner === "draw" ? "Draw!" : 
-        gameState.winner === currentGame.color.charAt(0) ? "You won!" : "You lost";
+    if (gameState.status === "waiting") {
+      status = "Waiting for opponent...";
+    } else if (gameState.status === "in-progress") {
+      if (isSpectator) {
+        status = `${gameState.turn === "w" ? gameState.whiteName : gameState.blackName}'s turn`;
+      } else {
+        status = isMyTurn ? "Your turn" : "Opponent's turn";
+      }
+    } else if (gameState.status === "finished") {
+      if (gameState.winner === "draw") {
+        status = "Draw!";
+      } else if (gameState.winner === "abandoned") {
+        status = "Game abandoned";
+      } else if (isSpectator) {
+        status = `${gameState.winner === "white" ? gameState.whiteName : gameState.blackName} won!`;
+      } else {
+        const myWinnerKey = currentGame.color === "w" ? "white" : "black";
+        status = myWinnerKey === gameState.winner ? "You won!" : "You lost";
+      }
     }
 
     return (
       <Layout>
-        <div className="flex flex-col lg:flex-row">
-          <div className="flex-1 p-3 md:p-8 flex flex-col items-center gap-4 md:gap-6">
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-w-0 p-3 md:p-6 lg:p-8 flex flex-col items-center gap-2 md:gap-4 justify-center">
             {/* Game header */}
-            <div className="w-full max-w-[480px] flex items-center justify-between">
+            <div className="w-full max-w-[560px] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
                 <span className="font-mono text-sm text-zinc-400">
@@ -126,21 +170,21 @@ function App() {
               </button>
             </div>
 
-            {/* Opponent info */}
-            <div className="w-full max-w-[480px] flex items-center gap-3 px-4 py-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
-              <div className={`w-3 h-3 rounded-full ${!isMyTurn && gameState.status === "in-progress" ? "bg-amber-500" : "bg-zinc-700"}`} />
-              <span className="text-sm text-zinc-300 font-medium">{oppName || "Waiting..."}</span>
-              {gameState.isCheck && !isMyTurn && <span className="text-xs text-red-400 ml-auto">CHECK</span>}
+            {/* Top player info */}
+            <div className="w-full max-w-[560px] flex items-center gap-3 px-4 py-2.5 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <div className={`w-3 h-3 rounded-full ${isTopActive ? "bg-amber-500" : "bg-zinc-700"}`} />
+              <span className="text-sm text-zinc-300 font-medium">{topName || "Waiting..."}</span>
+              {gameState.isCheck && isTopActive && <span className="text-xs text-red-400 ml-auto">CHECK</span>}
             </div>
 
             {/* Board */}
             <Board fen={gameState.fen} color={currentGame.color} isMyTurn={isMyTurn} onMove={handleMove} />
 
-            {/* Player info */}
-            <div className="w-full max-w-[480px] flex items-center gap-3 px-4 py-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
-              <div className={`w-3 h-3 rounded-full ${isMyTurn ? "bg-green-500" : "bg-zinc-700"}`} />
-              <span className="text-sm text-white font-medium">{myName} (You)</span>
-              {gameState.isCheck && isMyTurn && <span className="text-xs text-red-400 ml-auto">CHECK</span>}
+            {/* Bottom player info */}
+            <div className="w-full max-w-[560px] flex items-center gap-3 px-4 py-2.5 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <div className={`w-3 h-3 rounded-full ${isBottomActive ? "bg-green-500" : "bg-zinc-700"}`} />
+              <span className="text-sm text-white font-medium">{bottomName}{!isSpectator && " (You)"}</span>
+              {gameState.isCheck && isBottomActive && <span className="text-xs text-red-400 ml-auto">CHECK</span>}
             </div>
 
             {/* Status */}
@@ -170,10 +214,10 @@ function App() {
   // HOME VIEW
   return (
     <Layout>
-      <div className="p-6 md:p-16 flex flex-col items-center gap-8 md:gap-10">
+      <div className="p-6 md:p-16 flex flex-col items-center justify-center h-full gap-8 md:gap-10">
         {/* Hero */}
         <div className="text-center space-y-3">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-zinc-100">
             Chess
           </h1>
           <p className="text-zinc-500 text-sm md:text-base">Real-time multiplayer chess</p>

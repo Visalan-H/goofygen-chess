@@ -2,12 +2,13 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Chess } from "chess.js";
 import { generateRoomCode } from "./utils";
-import { requireUser, requireGame, cleanupUserIfIdle } from "./lib/helpers";
+import { requireUser, requireGame, cleanupUserIfIdle, userHasActiveGames } from "./lib/helpers";
 
 export const create = mutation({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
     const user = await requireUser(ctx, token);
+    if (await userHasActiveGames(ctx, user._id)) throw new Error("You already have an active game");
     const roomId = generateRoomCode();
     const gameId = await ctx.db.insert("games", {
       roomId,
@@ -46,6 +47,8 @@ export const join = mutation({
     if (game.playerWhite === user._id || game.playerBlack === user._id) {
       return { gameId: game._id, roomId: game.roomId, color: game.playerWhite === user._id ? "w" : "b" };
     }
+
+    if (await userHasActiveGames(ctx, user._id)) throw new Error("You already have an active game");
 
     if (!game.playerBlack && game.status === "waiting") {
       await ctx.db.patch(game._id, { playerBlack: user._id, status: "in-progress" });
@@ -141,8 +144,8 @@ export const leaveGame = mutation({
       await ctx.db.patch(game._id, {
         status: "finished",
         winner: isWhite ? "black" : "white",
-        whiteLeft: isWhite || undefined,
-        blackLeft: isBlack || undefined,
+        whiteLeft: isWhite ? true : game.whiteLeft,
+        blackLeft: isBlack ? true : game.blackLeft,
       });
       await cleanupUserIfIdle(ctx, user._id);
       return { success: true };
@@ -155,8 +158,8 @@ export const leaveGame = mutation({
     }
 
     await ctx.db.patch(game._id, {
-      whiteLeft: isWhite || game.whiteLeft || undefined,
-      blackLeft: isBlack || game.blackLeft || undefined,
+      whiteLeft: isWhite ? true : game.whiteLeft,
+      blackLeft: isBlack ? true : game.blackLeft,
     });
 
     if (whiteLeft && blackLeft) {

@@ -10,16 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.0.0",
     "chess.js": "^1.0.0-beta.8",
+    "chessground": "^9.2.1",
     "clsx": "^2.1.0",
     "convex": "^1.8.0",
     "react": "^18.2.0",
     "react-chessboard": "^4.3.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.0.1",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^2.2.1",
     "tailwindcss": "^4.0.0",
-    "@tailwindcss/vite": "^4.0.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

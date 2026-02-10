@@ -1,5 +1,5 @@
-import { Chessboard } from "react-chessboard";
 import { useCallback } from "react";
+import { ChessgroundBoard } from "./ChessgroundBoard";
 
 type BoardProps = {
   fen: string;
@@ -9,25 +9,14 @@ type BoardProps = {
 };
 
 export function Board({ fen, color, isMyTurn, onMove }: BoardProps) {
-  const handleDrop = useCallback(
-    (source: string, target: string) => {
-      if (!isMyTurn || color === "s") return false;
-      onMove({ from: source, to: target, promotion: "q" });
-      return true;
+
+  const handleMove = useCallback(
+    (move: { from: string; to: string; promotion?: string }) => {
+      if (!isMyTurn || color === "s") return;
+      onMove({ ...move, promotion: move.promotion ?? "q" });
     },
     [isMyTurn, color, onMove]
   );
 
-  return (
-    <div className="w-full max-w-[480px] aspect-square rounded-xl overflow-hidden border border-zinc-800 shadow-2xl">
-      <Chessboard
-        position={fen}
-        boardOrientation={color === "b" ? "black" : "white"}
-        arePiecesDraggable={isMyTurn && color !== "s"}
-        onPieceDrop={handleDrop}
-        customDarkSquareStyle={{ backgroundColor: "#3f3f46" }}
-        customLightSquareStyle={{ backgroundColor: "#e4e4e7" }}
-      />
-    </div>
-  );
+  return <ChessgroundBoard fen={fen} color={color} isMyTurn={isMyTurn} onMove={handleMove} />;
 }

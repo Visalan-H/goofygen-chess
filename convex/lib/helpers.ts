@@ -43,7 +43,8 @@ export async function userHasActiveGames(ctx: MutationCtx, userId: Id<"users">) 
 
 export async function cleanupUserIfIdle(ctx: MutationCtx, userId: Id<"users">) {
   if (!(await userHasActiveGames(ctx, userId))) {
-    await ctx.db.delete(userId);
+    const user = await ctx.db.get(userId);
+    if (user) await ctx.db.patch(userId, { isOnline: false });
     return true;
   }
   return false;

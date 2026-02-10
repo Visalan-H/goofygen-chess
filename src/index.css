@@ -25,7 +25,15 @@
   --color-zinc-200: #e4e4e7;
 }
 
-* { border-color: var(--color-border); }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  border-color: var(--color-border);
+}
 
 body {
   background-color: var(--color-background);
@@ -46,15 +54,47 @@ body {
   cursor: pointer;
 }
 
-.btn:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
-.btn-primary { background: var(--color-primary); color: var(--color-primary-foreground); }
-.btn-primary:hover { opacity: 0.9; }
-.btn-secondary { background: var(--color-secondary); color: var(--color-secondary-foreground); border: 1px solid var(--color-border); }
-.btn-secondary:hover { background: var(--color-zinc-700); }
-.btn-ghost { background: transparent; color: var(--color-foreground); }
-.btn-ghost:hover { background: var(--color-secondary); }
-.btn-destructive { background: var(--color-destructive); color: white; }
-.btn-destructive:hover { opacity: 0.9; }
+.btn:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background: var(--color-secondary);
+  color: var(--color-secondary-foreground);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: var(--color-zinc-700);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-foreground);
+}
+
+.btn-ghost:hover {
+  background: var(--color-secondary);
+}
+
+.btn-destructive {
+  background: var(--color-destructive);
+  color: white;
+}
+
+.btn-destructive:hover {
+  opacity: 0.9;
+}
 
 .input {
   display: flex;
@@ -68,5 +108,47 @@ body {
   transition: border-color 150ms;
 }
 
-.input::placeholder { color: var(--color-muted-foreground); }
-.input:focus { outline: none; border-color: var(--color-ring); }
+.input::placeholder {
+  color: var(--color-muted-foreground);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-ring);
+}
+
+cg-board {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8"><rect fill="%2352525b" width="8" height="8"/><g fill="%2327272a"><rect width="1" height="1" x="1"/><rect width="1" height="1" x="3"/><rect width="1" height="1" x="5"/><rect width="1" height="1" x="7"/><rect width="1" height="1" y="1"/><rect width="1" height="1" x="2" y="1"/><rect width="1" height="1" x="4" y="1"/><rect width="1" height="1" x="6" y="1"/><rect width="1" height="1" x="1" y="2"/><rect width="1" height="1" x="3" y="2"/><rect width="1" height="1" x="5" y="2"/><rect width="1" height="1" x="7" y="2"/><rect width="1" height="1" y="3"/><rect width="1" height="1" x="2" y="3"/><rect width="1" height="1" x="4" y="3"/><rect width="1" height="1" x="6" y="3"/><rect width="1" height="1" x="1" y="4"/><rect width="1" height="1" x="3" y="4"/><rect width="1" height="1" x="5" y="4"/><rect width="1" height="1" x="7" y="4"/><rect width="1" height="1" y="5"/><rect width="1" height="1" x="2" y="5"/><rect width="1" height="1" x="4" y="5"/><rect width="1" height="1" x="6" y="5"/><rect width="1" height="1" x="1" y="6"/><rect width="1" height="1" x="3" y="6"/><rect width="1" height="1" x="5" y="6"/><rect width="1" height="1" x="7" y="6"/><rect width="1" height="1" y="7"/><rect width="1" height="1" x="2" y="7"/><rect width="1" height="1" x="4" y="7"/><rect width="1" height="1" x="6" y="7"/></g></svg>');
+}
+
+.cg-wrap coords {
+  color: #666;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.cg-wrap piece {
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
+}
+
+cg-board square.last-move {
+  background-color: rgba(155, 199, 0, 0.41) !important;
+}
+
+cg-board square.selected {
+  background-color: rgba(20, 85, 30, 0.5) !important;
+}
+
+cg-board square.move-dest {
+  background: radial-gradient(rgba(20, 85, 0, 0.5) 22%, transparent 22%);
+  background-size: 100% 100%;
+}
+
+cg-board square.oc.move-dest {
+  background: radial-gradient(transparent 0%, transparent 80%, rgba(20, 85, 0, 0.3) 80%);
+  background-size: 100% 100%;
+}
+
+cg-board square.check {
+  background: radial-gradient(ellipse at center, rgba(255, 0, 0, 1) 0%, rgba(231, 0, 0, 1) 25%, rgba(169, 0, 0, 0) 89%, rgba(158, 0, 0, 0) 100%);
+}
