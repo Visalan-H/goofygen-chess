@@ -107,15 +107,15 @@ function App() {
     let message: string;
     let type: "info" | "success" | "error" = "info";
     if (state.winner === "draw") {
-      message = "Draw.";
+      message = "Draw. Nobody dances.";
     } else if (state.winner === "abandoned") {
       message = "Game abandoned.";
       type = "error";
     } else if (game.color === "s") {
-      message = `${state.winner === "white" ? state.whiteName : state.blackName} won.`;
+      message = `${state.winner === "white" ? state.whiteName : state.blackName} won. Loser dances.`;
     } else {
       const iWon = (game.color === "w" ? "white" : "black") === state.winner;
-      message = iWon ? "You won." : "You lost.";
+      message = iWon ? "You won. Loser dances." : "You lost. Time to dance.";
       type = iWon ? "success" : "error";
     }
     toast(message, type);
@@ -128,7 +128,7 @@ function App() {
   }, [finishedGameId, toast, leaveGame, token]);
 
   const handleCreate = async () => {
-    if (!name.trim()) return toast("Enter a name first.", "error");
+    if (!name.trim()) return toast("Enter your name first.", "error");
     try {
       const result = await createGame({ token });
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: "w" });
@@ -138,10 +138,10 @@ function App() {
   };
 
   const handleJoin = async (code?: string) => {
-    if (!name.trim()) return toast("Enter a name first.", "error");
+    if (!name.trim()) return toast("Enter your name first.", "error");
     try {
       const result = await joinGame({ token, roomId: code || undefined });
-      if (!result) return toast("No one is waiting. Start a game.", "info");
+      if (!result) return toast("No challengers yet. Start a game.", "info");
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: result.color });
     } catch (err) {
       toast(errorMessage(err), "error");
@@ -170,14 +170,14 @@ function App() {
     const ok = await confirm({
       title: isResign ? "Resign?" : "Leave?",
       message: isResign
-        ? "This counts as a loss."
+        ? "You lose, and the dance starts."
         : "Are you sure you want to leave?",
       confirmText: isResign ? "Resign" : "Leave",
       cancelText: "Cancel",
       variant: "destructive",
     });
     if (!ok) return;
-    if (isResign) toast("You resigned.", "info");
+    if (isResign) toast("You resigned. Start warming up.", "info");
     if (currentGame) await leaveGame({ token, gameId: currentGame.id }).catch(() => {});
     setCurrentGame(null);
   };
@@ -198,12 +198,12 @@ function App() {
 
     let status = "";
     if (gameState.status === "waiting") {
-      status = "Waiting for opponent";
+      status = "Waiting for a challenger";
     } else if (gameState.status === "in-progress") {
       if (isSpectator) {
-        status = `${gameState.turn === "w" ? gameState.whiteName : gameState.blackName}'s turn`;
+        status = `${gameState.turn === "w" ? gameState.whiteName : gameState.blackName}'s move`;
       } else {
-        status = isMyTurn ? "Your turn" : "Their turn";
+        status = isMyTurn ? "Your move" : "Their move";
       }
     } else if (gameState.status === "finished") {
       if (gameState.winner === "draw") {
@@ -238,7 +238,7 @@ function App() {
               <div className="player-bar">
                 <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isTopActive ? "bg-white ring-white/40" : "bg-zinc-700 ring-transparent"}`} />
                 <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isTopActive ? "text-white" : "text-zinc-500"}`}>
-                  {topName || "Waiting"}
+                  {topName || "Empty seat"}
                 </span>
                 {gameState.isCheck && isTopActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
               </div>
@@ -269,7 +269,7 @@ function App() {
       <Layout>
         <div className="flex-1 p-8 md:p-16 flex flex-col items-center justify-center gap-4">
           <div className="w-8 h-8 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
-          <p className="text-zinc-500 text-sm">Loading</p>
+          <p className="text-zinc-500 text-sm">Pulling up a chair...</p>
         </div>
       </Layout>
     );
@@ -284,14 +284,14 @@ function App() {
         <div className="home-hero w-full max-w-sm space-y-3">
           <p className="text-sm font-semibold tracking-tight">Goofygen Chess</p>
           <h1 className="hero-word">Play.</h1>
-          <p className="text-zinc-500 text-base md:text-lg">Two players, one board.</p>
+          <p className="text-zinc-500 text-base md:text-lg">Street chess, online. Loser dances.</p>
         </div>
 
         {/* Name input */}
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Name"
+          placeholder="Your name"
           maxLength={24}
           className="input w-full max-w-sm"
         />
@@ -338,7 +338,7 @@ function App() {
 
         {/* Stats */}
         <p className="w-full max-w-sm text-sm text-zinc-500">
-          {onlineCount} browsing, {playersCount} playing
+          {onlineCount} in the lobby, {playersCount} at a board
         </p>
       </div>
       </div>
