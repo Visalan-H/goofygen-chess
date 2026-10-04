@@ -1,90 +1,68 @@
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
-import { getUserByToken } from "./lib/helpers";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { ConvexError, v } from "convex/values";
+import { getUserByToken, MAX_NAME_LENGTH } from "./lib/helpers";
 
+const STALE_AFTER_MS = 3 * 60 * 1000; // the client heartbeats every 60s
+const BATCH = 100;
+
+// Registers the guest. The client also calls it as the heartbeat.
 export const register = mutation({
   args: { name: v.string(), token: v.string() },
+  returns: v.id("users"),
   handler: async (ctx, { name, token }) => {
-    const usersWithToken = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) => q.eq("token", token))
-      .collect();
+    if (token.length < 8 || token.length > 64) throw new ConvexError("Invalid token");
+    const cleanName = name.trim().slice(0, MAX_NAME_LENGTH) || "Guest";
 
-    // Handle duplicates (cleanup race condition edge case)
-    if (usersWithToken.length > 1) {
-      const [keep, ...duplicates] = usersWithToken;
-      for (const dup of duplicates) await ctx.db.delete(dup._id);
-      await ctx.db.patch(keep._id, { name, lastSeen: Date.now(), isOnline: true });
-      return keep._id;
-    }
-
-    // Existing user
-    if (usersWithToken.length === 1) {
-      const existing = usersWithToken[0];
-      await ctx.db.patch(existing._id, { name, lastSeen: Date.now(), isOnline: true });
+    const existing = await getUserByToken(ctx, token);
+    if (existing) {
+      await ctx.db.patch("users", existing._id, { name: cleanName, lastSeen: Date.now(), isOnline: true });
       return existing._id;
     }
-
-    // Double-check before insert
-    const recheck = await getUserByToken(ctx, token);
-    if (recheck) {
-      await ctx.db.patch(recheck._id, { name, lastSeen: Date.now(), isOnline: true });
-      return recheck._id;
-    }
-
-    // New user
-    return await ctx.db.insert("users", { name, token, isOnline: true, lastSeen: Date.now() });
+    return await ctx.db.insert("users", { name: cleanName, token, isOnline: true, lastSeen: Date.now() });
   },
 });
 
 export const setOffline = mutation({
   args: { token: v.string() },
+  returns: v.null(),
   handler: async (ctx, { token }) => {
     const user = await getUserByToken(ctx, token);
-    if (user) await ctx.db.patch(user._id, { isOnline: false });
+    if (user) await ctx.db.patch("users", user._id, { isOnline: false });
+    return null;
   },
 });
 
-export const getOnlineCount = query({
+// Queries can't rely on Date.now() because they don't re-run as time passes,
+// so a cron flips isOnline for users whose heartbeat stopped.
+export const markStaleOffline = internalMutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
-    const cutoff = Date.now() - 2 * 60 * 1000;
+    const cutoff = Date.now() - STALE_AFTER_MS;
+    const stale = await ctx.db
+      .query("users")
+      .withIndex("by_online", (q) => q.eq("isOnline", true).lt("lastSeen", cutoff))
+      .take(BATCH);
+    for (const user of stale) await ctx.db.patch("users", user._id, { isOnline: false });
+    if (stale.length === BATCH) await ctx.scheduler.runAfter(0, internal.users.markStaleOffline, {});
+    return null;
+  },
+});
+
+export const getStats = query({
+  args: {},
+  returns: v.object({ browsing: v.number(), playing: v.number() }),
+  handler: async (ctx) => {
     const online = await ctx.db
       .query("users")
       .withIndex("by_online", (q) => q.eq("isOnline", true))
-      .filter((q) => q.gt(q.field("lastSeen"), cutoff))
-      .collect();
-
-    if (online.length === 0) return 0;
-
-    const games = await ctx.db
+      .take(1000);
+    const inProgress = await ctx.db
       .query("games")
-      .filter((q) => q.or(q.eq(q.field("status"), "waiting"), q.eq(q.field("status"), "in-progress")))
-      .collect();
-
-    const playerIds = new Set<string>();
-    games.forEach((g) => {
-      playerIds.add(g.playerWhite);
-      if (g.playerBlack) playerIds.add(g.playerBlack);
-    });
-
-    return online.filter((u) => !playerIds.has(u._id)).length;
-  },
-});
-
-export const getActivePlayersCount = query({
-  args: {},
-  handler: async (ctx) => {
-    const games = await ctx.db
-      .query("games")
-      .filter((q) => q.or(q.eq(q.field("status"), "waiting"), q.eq(q.field("status"), "in-progress")))
-      .collect();
-
-    const playerIds = new Set<string>();
-    games.forEach((g) => {
-      playerIds.add(g.playerWhite);
-      if (g.playerBlack) playerIds.add(g.playerBlack);
-    });
-    return playerIds.size;
+      .withIndex("by_status", (q) => q.eq("status", "in-progress"))
+      .take(500);
+    const playing = inProgress.length * 2;
+    return { browsing: Math.max(0, online.length - playing), playing };
   },
 });

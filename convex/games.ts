@@ -1,22 +1,41 @@
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { ConvexError, v } from "convex/values";
 import { Chess } from "chess.js";
+import { Doc } from "./_generated/dataModel";
 import { generateRoomCode } from "./utils";
-import { requireUser, requireGame, cleanupUserIfIdle, userHasActiveGames } from "./lib/helpers";
+import { requireUser, requireGame, findActiveGame, getUserByToken, deleteGameWithMessages } from "./lib/helpers";
+import { gameStatus, gameWinner, playerColor, seatColor } from "./lib/validators";
+
+const WAITING_TTL_MS = 30 * 60 * 1000;
+const IDLE_TTL_MS = 2 * 60 * 60 * 1000;
+const FINISHED_TTL_MS = 24 * 60 * 60 * 1000;
+const CLEANUP_BATCH = 100;
+
+const seat = v.object({ gameId: v.id("games"), roomId: v.string(), color: seatColor });
 
 export const create = mutation({
   args: { token: v.string() },
+  returns: v.object({ gameId: v.id("games"), roomId: v.string() }),
   handler: async (ctx, { token }) => {
     const user = await requireUser(ctx, token);
-    if (await userHasActiveGames(ctx, user._id)) throw new Error("You already have an active game");
-    const roomId = generateRoomCode();
+    if (await findActiveGame(ctx, user._id)) throw new ConvexError("You already have an active game");
+
+    let roomId = generateRoomCode();
+    for (let i = 0; i < 5; i++) {
+      const taken = await ctx.db.query("games").withIndex("by_room_code", (q) => q.eq("roomId", roomId)).first();
+      if (!taken) break;
+      roomId = generateRoomCode();
+    }
+
+    const now = Date.now();
     const gameId = await ctx.db.insert("games", {
       roomId,
       pgn: "",
       playerWhite: user._id,
-      playerBlack: undefined,
       status: "waiting",
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     });
     return { gameId, roomId };
   },
@@ -24,52 +43,82 @@ export const create = mutation({
 
 export const join = mutation({
   args: { token: v.string(), roomId: v.optional(v.string()) },
+  returns: v.union(seat, v.null()),
   handler: async (ctx, { token, roomId }) => {
     const user = await requireUser(ctx, token);
 
-    let game;
+    let game: Doc<"games"> | null = null;
     if (roomId) {
-      game = await ctx.db
-        .query("games")
-        .withIndex("by_room_code", (q) => q.eq("roomId", roomId.toUpperCase().trim()))
-        .first();
-      if (!game) throw new Error("Room not found");
+      const code = roomId.toUpperCase().trim();
+      game = await ctx.db.query("games").withIndex("by_room_code", (q) => q.eq("roomId", code)).first();
+      if (!game) throw new ConvexError("Room not found");
     } else {
+      // Quick match: oldest waiting game whose host is still online
       const waiting = await ctx.db
         .query("games")
         .withIndex("by_status", (q) => q.eq("status", "waiting"))
-        .take(10);
-      game = waiting.find((g) => g.playerWhite !== user._id);
+        .take(20);
+      for (const candidate of waiting) {
+        if (candidate.playerWhite === user._id) continue;
+        const host = await ctx.db.get("users", candidate.playerWhite);
+        if (host?.isOnline) {
+          game = candidate;
+          break;
+        }
+      }
     }
 
     if (!game) return null;
 
     if (game.playerWhite === user._id || game.playerBlack === user._id) {
-      return { gameId: game._id, roomId: game.roomId, color: game.playerWhite === user._id ? "w" : "b" };
+      return { gameId: game._id, roomId: game.roomId, color: game.playerWhite === user._id ? ("w" as const) : ("b" as const) };
     }
 
-    if (await userHasActiveGames(ctx, user._id)) throw new Error("You already have an active game");
+    if (game.status === "finished") throw new ConvexError("That game has already ended");
+    if (await findActiveGame(ctx, user._id)) throw new ConvexError("You already have an active game");
 
     if (!game.playerBlack && game.status === "waiting") {
-      await ctx.db.patch(game._id, { playerBlack: user._id, status: "in-progress" });
-      return { gameId: game._id, roomId: game.roomId, color: "b" };
+      await ctx.db.patch("games", game._id, { playerBlack: user._id, status: "in-progress", updatedAt: Date.now() });
+      return { gameId: game._id, roomId: game.roomId, color: "b" as const };
     }
 
-    return { gameId: game._id, roomId: game.roomId, color: "s" };
+    return { gameId: game._id, roomId: game.roomId, color: "s" as const };
   },
 });
 
 export const getGame = query({
   args: { gameId: v.id("games") },
+  returns: v.union(
+    v.object({
+      _id: v.id("games"),
+      roomId: v.string(),
+      pgn: v.string(),
+      fen: v.string(),
+      turn: playerColor,
+      status: gameStatus,
+      winner: v.optional(gameWinner),
+      whiteName: v.string(),
+      blackName: v.string(),
+      isGameOver: v.boolean(),
+      isCheck: v.boolean(),
+    }),
+    v.null(),
+  ),
   handler: async (ctx, { gameId }) => {
-    const game = await ctx.db.get(gameId);
+    const game = await ctx.db.get("games", gameId);
     if (!game) return null;
 
-    const white = await ctx.db.get(game.playerWhite);
-    const black = game.playerBlack ? await ctx.db.get(game.playerBlack) : null;
+    const white = await ctx.db.get("users", game.playerWhite);
+    const black = game.playerBlack ? await ctx.db.get("users", game.playerBlack) : null;
 
     const chess = new Chess();
-    if (game.pgn) try { chess.loadPgn(game.pgn); } catch { /* ignore */ }
+    if (game.pgn) {
+      try {
+        chess.loadPgn(game.pgn);
+      } catch {
+        // A corrupt PGN falls back to the starting position
+      }
+    }
 
     return {
       _id: game._id,
@@ -93,85 +142,133 @@ export const makeMove = mutation({
     gameId: v.id("games"),
     move: v.object({ from: v.string(), to: v.string(), promotion: v.optional(v.string()) }),
   },
+  returns: v.null(),
   handler: async (ctx, { token, gameId, move }) => {
     const user = await requireUser(ctx, token);
     const game = await requireGame(ctx, gameId);
 
-    if (game.status !== "in-progress") throw new Error("Game not active");
+    if (game.status !== "in-progress") throw new ConvexError("Game not active");
 
     const isWhite = game.playerWhite === user._id;
     const isBlack = game.playerBlack === user._id;
-    if (!isWhite && !isBlack) throw new Error("Not a player");
+    if (!isWhite && !isBlack) throw new ConvexError("Not a player");
 
     const chess = new Chess();
     if (game.pgn) chess.loadPgn(game.pgn);
 
     const turn = chess.turn();
-    if ((turn === "w" && !isWhite) || (turn === "b" && !isBlack)) throw new Error("Not your turn");
+    if ((turn === "w" && !isWhite) || (turn === "b" && !isBlack)) throw new ConvexError("Not your turn");
 
-    const result = chess.move(move);
-    if (!result) throw new Error("Invalid move");
-
-    let status: "waiting" | "in-progress" | "finished" | "archived" = game.status;
-    let winner = game.winner;
-
-    if (chess.isGameOver()) {
-      status = "finished";
-      winner = chess.isCheckmate() ? (turn === "w" ? "white" : "black") : "draw";
-      await cleanupUserIfIdle(ctx, game.playerWhite);
-      if (game.playerBlack) await cleanupUserIfIdle(ctx, game.playerBlack);
+    try {
+      chess.move(move); // chess.js throws on an illegal move
+    } catch {
+      throw new ConvexError("Invalid move");
     }
 
-    await ctx.db.patch(game._id, { pgn: chess.pgn(), status, winner });
-    return { success: true };
+    const over = chess.isGameOver();
+    await ctx.db.patch("games", game._id, {
+      pgn: chess.pgn(),
+      updatedAt: Date.now(),
+      ...(over && {
+        status: "finished" as const,
+        winner: chess.isCheckmate() ? (turn === "w" ? ("white" as const) : ("black" as const)) : ("draw" as const),
+      }),
+    });
+    return null;
   },
 });
 
 export const leaveGame = mutation({
   args: { token: v.string(), gameId: v.id("games") },
+  returns: v.null(),
   handler: async (ctx, { token, gameId }) => {
     const user = await requireUser(ctx, token);
-    const game = await requireGame(ctx, gameId);
+    const game = await ctx.db.get("games", gameId);
+    if (!game) return null;
 
     const isWhite = game.playerWhite === user._id;
     const isBlack = game.playerBlack === user._id;
-    if (!isWhite && !isBlack) return { success: true };
-
-    const whiteLeft = isWhite || game.whiteLeft;
-    const blackLeft = isBlack || game.blackLeft;
-
-    if (game.status === "in-progress") {
-      await ctx.db.patch(game._id, {
-        status: "finished",
-        winner: isWhite ? "black" : "white",
-        whiteLeft: isWhite ? true : game.whiteLeft,
-        blackLeft: isBlack ? true : game.blackLeft,
-      });
-      await cleanupUserIfIdle(ctx, user._id);
-      return { success: true };
-    }
+    if (!isWhite && !isBlack) return null; // spectators just disconnect
 
     if (game.status === "waiting") {
-      await ctx.db.delete(game._id);
-      await cleanupUserIfIdle(ctx, user._id);
-      return { success: true };
+      await deleteGameWithMessages(ctx, game._id);
+      return null;
     }
 
-    await ctx.db.patch(game._id, {
-      whiteLeft: isWhite ? true : game.whiteLeft,
-      blackLeft: isBlack ? true : game.blackLeft,
-    });
+    const whiteLeft = isWhite || !!game.whiteLeft;
+    const blackLeft = isBlack || !!game.blackLeft;
 
-    if (whiteLeft && blackLeft) {
-      const messages = await ctx.db.query("messages").withIndex("by_game", (q) => q.eq("gameId", game._id)).collect();
-      for (const msg of messages) await ctx.db.delete(msg._id);
-      await ctx.db.delete(game._id);
-      await cleanupUserIfIdle(ctx, game.playerWhite);
-      if (game.playerBlack) await cleanupUserIfIdle(ctx, game.playerBlack);
+    if (game.status === "in-progress") {
+      // Leaving mid-game is a resignation
+      await ctx.db.patch("games", game._id, {
+        status: "finished",
+        winner: isWhite ? "black" : "white",
+        whiteLeft,
+        blackLeft,
+        updatedAt: Date.now(),
+      });
+    } else if (whiteLeft && blackLeft) {
+      await deleteGameWithMessages(ctx, game._id);
     } else {
-      await cleanupUserIfIdle(ctx, user._id);
+      await ctx.db.patch("games", game._id, { whiteLeft, blackLeft, updatedAt: Date.now() });
+    }
+    return null;
+  },
+});
+
+export const getActiveGame = query({
+  args: { token: v.string() },
+  returns: v.union(seat, v.null()),
+  handler: async (ctx, { token }) => {
+    const user = await getUserByToken(ctx, token);
+    if (!user) return null;
+
+    const active = await findActiveGame(ctx, user._id);
+    if (!active) return null;
+    return { gameId: active.game._id, roomId: active.game.roomId, color: active.color };
+  },
+});
+
+// Runs from a cron. Expires abandoned lobbies, ends idle games, and deletes old finished games.
+export const cleanupOldGames = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const now = Date.now();
+    let more = false;
+
+    const staleWaiting = await ctx.db
+      .query("games")
+      .withIndex("by_status", (q) => q.eq("status", "waiting").lt("createdAt", now - WAITING_TTL_MS))
+      .take(CLEANUP_BATCH);
+    for (const game of staleWaiting) await deleteGameWithMessages(ctx, game._id);
+    if (staleWaiting.length === CLEANUP_BATCH) more = true;
+
+    // Oldest first, so one batch covers every idle game that matters
+    const inProgress = await ctx.db
+      .query("games")
+      .withIndex("by_status_updated", (q) => q.eq("status", "in-progress"))
+      .take(CLEANUP_BATCH);
+    for (const game of inProgress) {
+      if ((game.updatedAt ?? game.createdAt) < now - IDLE_TTL_MS) {
+        await ctx.db.patch("games", game._id, { status: "finished", winner: "abandoned", updatedAt: now });
+      }
     }
 
-    return { success: true };
+    const finished = await ctx.db
+      .query("games")
+      .withIndex("by_status_updated", (q) => q.eq("status", "finished"))
+      .take(CLEANUP_BATCH);
+    let deletedFinished = 0;
+    for (const game of finished) {
+      if ((game.updatedAt ?? game.createdAt) < now - FINISHED_TTL_MS) {
+        await deleteGameWithMessages(ctx, game._id);
+        deletedFinished++;
+      }
+    }
+    if (deletedFinished === CLEANUP_BATCH) more = true;
+
+    if (more) await ctx.scheduler.runAfter(0, internal.games.cleanupOldGames, {});
+    return null;
   },
 });
