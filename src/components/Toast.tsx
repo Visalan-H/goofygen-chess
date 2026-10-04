@@ -1,40 +1,26 @@
+import type { ReactNode } from "react";
 import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
 
 type ToastType = "info" | "success" | "error";
 
 export function Toaster() {
-  return (
-    <SonnerToaster
-      position="top-center"
-      richColors
-      theme="dark"
-      closeButton
-    />
-  );
+  return <SonnerToaster position="top-center" richColors theme="dark" closeButton />;
 }
 
-// Hook for compatibility with existing code
+// Defined once at module level so the reference stays stable across renders.
+function toast(message: string, type: ToastType = "info") {
+  if (type === "success") sonnerToast.success(message);
+  else if (type === "error") sonnerToast.error(message);
+  else sonnerToast(message);
+}
+
+const toastApi = { toast };
+
 export function useToast() {
-  const toast = (message: string, type: ToastType = "info") => {
-    switch (type) {
-      case "success":
-        sonnerToast.success(message);
-        break;
-      case "error":
-        sonnerToast.error(message);
-        break;
-      case "info":
-      default:
-        sonnerToast(message);
-        break;
-    }
-  };
-
-  return { toast };
+  return toastApi;
 }
 
-// Deprecated Provider - just renders children + Toaster
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
