@@ -68,22 +68,21 @@ export function Chat({ gameId, userToken }: ChatProps) {
         ))}
       </div>
 
-      {showGifs && (
-        <div className="absolute inset-x-0 bottom-full z-20 max-h-[40dvh] h-36 overflow-y-auto border-t border-white/10 bg-zinc-900/95 backdrop-blur p-2 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-1">
-          {goofyGifs.map((g) => (
-            <button key={g.id} type="button" onClick={() => handleGif(g.url)} className="p-0 border-0 bg-transparent">
-              <img
-                src={g.url}
-                alt={g.keywords.join(", ")}
-                loading="lazy"
-                className="w-full h-14 object-cover cursor-pointer hover:opacity-70 rounded"
-              />
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="p-2 sm:p-3 shrink-0 border-t border-white/5 flex gap-2">
+      <div className="relative p-2 sm:p-3 shrink-0 border-t border-white/5 flex gap-2">
+        {showGifs && (
+          <div className="absolute inset-x-0 bottom-full z-20 max-h-[40dvh] h-36 overflow-y-auto border-t border-white/10 bg-zinc-900/95 backdrop-blur p-2 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-1">
+            {goofyGifs.map((g) => (
+              <button key={g.id} type="button" onClick={() => handleGif(g.url)} className="p-0 border-0 bg-transparent">
+                <img
+                  src={g.url}
+                  alt={g.keywords.join(", ")}
+                  loading="lazy"
+                  className="w-full h-14 object-cover cursor-pointer hover:opacity-70 rounded"
+                />
+              </button>
+            ))}
+          </div>
+        )}
         <button
           type="button"
           aria-label="Toggle GIF picker"
