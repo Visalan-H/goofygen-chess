@@ -92,7 +92,7 @@ function App() {
   // The game was deleted while we were viewing it, for example by the lobby expiry cron
   useEffect(() => {
     if (currentGame && gameState === null) {
-      toast("That game no longer exists", "info");
+      toast("That game no longer exists.", "info");
       setCurrentGame(null);
     }
   }, [currentGame, gameState, toast]);
@@ -107,15 +107,15 @@ function App() {
     let message: string;
     let type: "info" | "success" | "error" = "info";
     if (state.winner === "draw") {
-      message = "Draw! Everyone is goofy, nobody wins.";
+      message = "Draw.";
     } else if (state.winner === "abandoned") {
       message = "Game abandoned.";
       type = "error";
     } else if (game.color === "s") {
-      message = `${state.winner === "white" ? state.whiteName : state.blackName} won. Goofy ahh play!`;
+      message = `${state.winner === "white" ? state.whiteName : state.blackName} won.`;
     } else {
       const iWon = (game.color === "w" ? "white" : "black") === state.winner;
-      message = iWon ? "You won! Goofy ahh victory!" : "You lost. You got goofed. Run it back?";
+      message = iWon ? "You won." : "You lost.";
       type = iWon ? "success" : "error";
     }
     toast(message, type);
@@ -128,7 +128,7 @@ function App() {
   }, [finishedGameId, toast, leaveGame, token]);
 
   const handleCreate = async () => {
-    if (!name.trim()) return toast("Pick a goofy name first", "error");
+    if (!name.trim()) return toast("Enter a name first.", "error");
     try {
       const result = await createGame({ token });
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: "w" });
@@ -138,10 +138,10 @@ function App() {
   };
 
   const handleJoin = async (code?: string) => {
-    if (!name.trim()) return toast("Pick a goofy name first", "error");
+    if (!name.trim()) return toast("Enter a name first.", "error");
     try {
       const result = await joinGame({ token, roomId: code || undefined });
-      if (!result) return toast("No goofballs waiting. Start a game!", "info");
+      if (!result) return toast("No one is waiting. Start a game.", "info");
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: result.color });
     } catch (err) {
       toast(errorMessage(err), "error");
@@ -168,12 +168,12 @@ function App() {
     const isResign = isInProgress && !isSpectating;
 
     const ok = await confirm({
-      title: isResign ? "Resign?" : "Leave the game?",
+      title: isResign ? "Resign?" : "Leave?",
       message: isResign
-        ? "You forfeit and the goofballs win."
-        : "Run away from the goofy fun?",
+        ? "This counts as a loss."
+        : "Are you sure you want to leave?",
       confirmText: isResign ? "Resign" : "Leave",
-      cancelText: "Keep playing",
+      cancelText: "Cancel",
       variant: "destructive",
     });
     if (!ok) return;
@@ -198,23 +198,23 @@ function App() {
 
     let status = "";
     if (gameState.status === "waiting") {
-      status = "Waiting for a goofball...";
+      status = "Waiting for opponent";
     } else if (gameState.status === "in-progress") {
       if (isSpectator) {
         status = `${gameState.turn === "w" ? gameState.whiteName : gameState.blackName}'s turn`;
       } else {
-        status = isMyTurn ? "Your turn, cook!" : "Opponent is cooking...";
+        status = isMyTurn ? "Your turn" : "Their turn";
       }
     } else if (gameState.status === "finished") {
       if (gameState.winner === "draw") {
-        status = "Draw. Nobody cooked.";
+        status = "Draw";
       } else if (gameState.winner === "abandoned") {
         status = "Game abandoned";
       } else if (isSpectator) {
-        status = `${gameState.winner === "white" ? gameState.whiteName : gameState.blackName} won!`;
+        status = `${gameState.winner === "white" ? gameState.whiteName : gameState.blackName} won`;
       } else {
         const myWinnerKey = currentGame.color === "w" ? "white" : "black";
-        status = myWinnerKey === gameState.winner ? "W! Goofy ahh victory" : "L. You got goofed";
+        status = myWinnerKey === gameState.winner ? "You won" : "You lost";
       }
     }
 
@@ -224,39 +224,34 @@ function App() {
           <div className="board-col">
             <div className="game-stack">
               {/* Room code, status, resign or leave */}
-              <div className="game-head flex items-center justify-between gap-2 px-1">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="font-mono text-xs sm:text-sm text-zinc-500/80">#</span>
-                  <span className="font-mono text-xs sm:text-sm text-zinc-300 font-bold tracking-wider">
-                    {gameState.roomId}
-                  </span>
+              <div className="game-head flex items-center justify-between gap-3 px-1">
+                <span className="min-w-0 truncate text-lg sm:text-xl font-semibold tracking-tight">{status}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="hidden min-[400px]:inline font-mono text-xs text-zinc-500 tracking-wider">{gameState.roomId}</span>
+                  <button onClick={handleLeave} className="-mr-1 px-3 h-full text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+                    {leaveButtonText}
+                  </button>
                 </div>
-                <span className={`min-w-0 truncate text-xs sm:text-sm font-medium ${gameState.status === "in-progress" ? "bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent" : "text-zinc-400"}`}>
-                  {status}
-                </span>
-                <button onClick={handleLeave} className="shrink-0 -mr-1 px-3 h-full text-xs font-medium text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-wide">
-                  {leaveButtonText}
-                </button>
               </div>
 
               {/* Top player */}
               <div className="player-bar">
-                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isTopActive ? "bg-amber-500 ring-amber-500/50" : "bg-zinc-700 ring-transparent"}`} />
+                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isTopActive ? "bg-white ring-white/40" : "bg-zinc-700 ring-transparent"}`} />
                 <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isTopActive ? "text-white" : "text-zinc-500"}`}>
-                  {topName || "Waiting..."}
+                  {topName || "Waiting"}
                 </span>
-                {gameState.isCheck && isTopActive && <span className="text-xs font-bold text-red-400 ml-auto tracking-wider">CHECK</span>}
+                {gameState.isCheck && isTopActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
               </div>
 
               <Board fen={gameState.fen} color={currentGame.color} isMyTurn={isMyTurn} onMove={handleMove} />
 
               {/* Bottom player */}
               <div className="player-bar">
-                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isBottomActive ? "bg-green-500 ring-green-500/50" : "bg-zinc-700 ring-transparent"}`} />
+                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isBottomActive ? "bg-white ring-white/40" : "bg-zinc-700 ring-transparent"}`} />
                 <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isBottomActive ? "text-white" : "text-zinc-500"}`}>
-                  {bottomName}{!isSpectator && " (You)"}
+                  {bottomName}{!isSpectator && " (you)"}
                 </span>
-                {gameState.isCheck && isBottomActive && <span className="text-xs font-bold text-red-400 ml-auto tracking-wider">CHECK</span>}
+                {gameState.isCheck && isBottomActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
               </div>
             </div>
           </div>
@@ -274,7 +269,7 @@ function App() {
       <Layout>
         <div className="flex-1 p-8 md:p-16 flex flex-col items-center justify-center gap-4">
           <div className="w-8 h-8 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
-          <p className="text-zinc-500 text-sm">Loading the goofy...</p>
+          <p className="text-zinc-500 text-sm">Loading</p>
         </div>
       </Layout>
     );
@@ -286,38 +281,37 @@ function App() {
       <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="home-inner min-h-full p-5 sm:p-10 md:p-16 flex flex-col items-center justify-center gap-6 sm:gap-8 md:gap-10">
         {/* Hero */}
-        <div className="home-hero text-center space-y-2 sm:space-y-3">
-          <h1 className="wordmark text-5xl sm:text-6xl md:text-7xl">
-            GOOFYGEN <span className="wordmark-face" aria-hidden="true">🤪</span>
-          </h1>
-          <p className="text-zinc-500 text-sm md:text-base">Chess, but goofy ahh</p>
+        <div className="home-hero w-full max-w-sm space-y-3">
+          <p className="text-sm font-semibold tracking-tight">Goofygen Chess</p>
+          <h1 className="hero-word">Play.</h1>
+          <p className="text-zinc-500 text-base md:text-lg">Two players, one board.</p>
         </div>
 
         {/* Name input */}
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Your goofy name"
+          placeholder="Name"
           maxLength={24}
-          className="input w-full max-w-sm text-center"
+          className="input w-full max-w-sm"
         />
 
         {/* Actions */}
-        <div className="flex flex-col gap-3 w-full max-w-sm">
+        <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
           {activeGame ? (
             <button
               onClick={() => setCurrentGame({ id: activeGame.gameId, roomId: activeGame.roomId, color: activeGame.color })}
-              className="btn btn-primary w-full shadow-lg shadow-white/10 hover:shadow-white/20 transition-all font-semibold"
+              className="btn btn-primary w-full"
             >
-              Back to the goofy game
+              Resume game
             </button>
           ) : (
-            <button onClick={handleCreate} className="btn btn-primary w-full shadow-lg shadow-white/10 hover:shadow-white/20 transition-all font-semibold">
-              Start a goofy game
+            <button onClick={handleCreate} className="btn btn-primary w-full">
+              New game
             </button>
           )}
-          <button onClick={() => handleJoin()} disabled={!!activeGame} className="btn btn-secondary w-full hover:bg-white/5 hover:border-white/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-            Find a goofball
+          <button onClick={() => handleJoin()} disabled={!!activeGame} className="btn btn-secondary w-full">
+            Quick match
           </button>
         </div>
 
@@ -331,28 +325,21 @@ function App() {
             onKeyDown={(e) => {
               if (e.key === "Enter" && roomCode.trim()) void handleJoin(roomCode);
             }}
-            className="input flex-1 min-w-0 text-center uppercase tracking-widest bg-zinc-900/50"
+            className="input flex-1 min-w-0 uppercase tracking-widest"
           />
           <button 
             onClick={() => roomCode.trim() && handleJoin(roomCode)} 
             disabled={!!activeGame}
-            className="btn btn-secondary shrink-0 px-5 sm:px-6 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn btn-secondary shrink-0 px-5 sm:px-6"
           >
             Join
           </button>
         </div>
 
         {/* Stats */}
-        <div className="flex gap-8 text-sm text-zinc-500">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            {onlineCount} goofballs browsing
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            {playersCount} goofballs playing
-          </div>
-        </div>
+        <p className="w-full max-w-sm text-sm text-zinc-500">
+          {onlineCount} browsing, {playersCount} playing
+        </p>
       </div>
       </div>
     </Layout>
