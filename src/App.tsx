@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
 import { Layout } from "./components/Layout";
 import { Board } from "./components/Board";
 import { Chat } from "./components/Chat";
-import { generateUUID } from "./lib/utils";
+import { generateUUID, errorMessage } from "./lib/utils";
 import { useToast } from "./components/Toast";
 import { useConfirm } from "./components/Confirm";
 
@@ -38,79 +38,133 @@ function App() {
   const makeMove = useMutation(api.games.makeMove);
   const leaveGame = useMutation(api.games.leaveGame);
 
-  const onlineCount = useQuery(api.users.getOnlineCount) ?? 0;
-  const playersCount = useQuery(api.users.getActivePlayersCount) ?? 0;
+  const stats = useQuery(api.users.getStats);
+  const onlineCount = stats?.browsing ?? 0;
+  const playersCount = stats?.playing ?? 0;
+  const activeGame = useQuery(api.games.getActiveGame, { token });
   const gameState = useQuery(
     api.games.getGame,
     currentGame ? { gameId: currentGame.id } : "skip"
   );
 
+  // Auto-rejoin active game on load
   useEffect(() => {
-    const displayName = name.trim() || "Guest";
+    if (activeGame && !currentGame) {
+      setCurrentGame({ id: activeGame.gameId, roomId: activeGame.roomId, color: activeGame.color });
+    }
+  }, [activeGame, currentGame]);
+
+  const displayName = name.trim() || "Guest";
+  const displayNameRef = useRef(displayName);
+  useEffect(() => {
+    displayNameRef.current = displayName;
+  }, [displayName]);
+
+  // Register on load and after the user stops typing, not on every keystroke
+  useEffect(() => {
     if (name.trim()) localStorage.setItem("chess_name", name);
-    register({ name: displayName, token });
+    const timer = setTimeout(() => {
+      register({ name: displayName, token }).catch(() => {});
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [name, displayName, token, register]);
 
-    const interval = setInterval(() => register({ name: displayName, token }), 30000);
-    const handleUnload = () => setOffline({ token });
+  // Heartbeat keeps the user marked online
+  useEffect(() => {
+    const interval = setInterval(() => {
+      register({ name: displayNameRef.current, token }).catch(() => {});
+    }, 60000);
+    const handleUnload = () => void setOffline({ token });
     window.addEventListener("beforeunload", handleUnload);
-
     return () => {
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleUnload);
     };
-  }, [name, token, register, setOffline]);
+  }, [token, register, setOffline]);
 
+  const gameStateRef = useRef(gameState);
+  const currentGameRef = useRef(currentGame);
   useEffect(() => {
-    if (gameState?.status === "finished") {
-      let message = "";
-      let type: "info" | "success" | "error" = "info";
+    gameStateRef.current = gameState;
+    currentGameRef.current = currentGame;
+  }, [gameState, currentGame]);
 
-      if (gameState.winner === "draw") {
-        message = "Draw! The game ended in a draw.";
-      } else if (gameState.winner === "abandoned") {
-        message = "Game Abandoned.";
-        type = "error";
-      } else {
-        const isSpectator = currentGame?.color === "s";
-        if (isSpectator) {
-           message = `Game Over. ${gameState.winner === "white" ? gameState.whiteName : gameState.blackName} won!`;
-        } else {
-          const myWinnerKey = currentGame?.color === "w" ? "white" : "black";
-          const iWon = myWinnerKey === gameState.winner;
-          message = iWon ? "You Won! 🎉 Great game!" : "You Lost 😔 Better luck next time.";
-          type = iWon ? "success" : "error";
-        }
-      }
-      toast(message, type);
+  // Announce the result once per game, then return to the lobby after 5 seconds
+  const finishedGameId = gameState?.status === "finished" ? currentGame?.id : undefined;
+  useEffect(() => {
+    const state = gameStateRef.current;
+    const game = currentGameRef.current;
+    if (!finishedGameId || !state || !game) return;
+
+    let message: string;
+    let type: "info" | "success" | "error" = "info";
+    if (state.winner === "draw") {
+      message = "Draw! The game ended in a draw.";
+    } else if (state.winner === "abandoned") {
+      message = "Game abandoned.";
+      type = "error";
+    } else if (game.color === "s") {
+      message = `Game over. ${state.winner === "white" ? state.whiteName : state.blackName} won!`;
+    } else {
+      const iWon = (game.color === "w" ? "white" : "black") === state.winner;
+      message = iWon ? "You won! Great game!" : "You lost. Better luck next time.";
+      type = iWon ? "success" : "error";
     }
-  }, [gameState?.status, gameState?.winner, currentGame?.color, toast, gameState?.whiteName, gameState?.blackName]);
+    toast(message, type);
+
+    const timer = setTimeout(() => {
+      leaveGame({ token, gameId: finishedGameId }).catch(() => {});
+      setCurrentGame(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [finishedGameId, toast, leaveGame, token]);
 
   const handleCreate = async () => {
     if (!name.trim()) return toast("Enter your name first", "error");
-    const result = await createGame({ token });
-    setCurrentGame({ id: result.gameId, roomId: result.roomId, color: "w" });
+    try {
+      const result = await createGame({ token });
+      setCurrentGame({ id: result.gameId, roomId: result.roomId, color: "w" });
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    }
   };
 
   const handleJoin = async (code?: string) => {
     if (!name.trim()) return toast("Enter your name first", "error");
-    const result = await joinGame({ token, roomId: code || undefined });
-    if (!result) return toast("No games available", "info");
-    setCurrentGame({ id: result.gameId, roomId: result.roomId, color: result.color as "w" | "b" | "s" });
+    try {
+      const result = await joinGame({ token, roomId: code || undefined });
+      if (!result) return toast("No games available", "info");
+      setCurrentGame({ id: result.gameId, roomId: result.roomId, color: result.color });
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    }
   };
 
   const handleMove = useCallback(
-    (move: { from: string; to: string; promotion?: string }) => {
-      if (!currentGame) return;
-      makeMove({ token, gameId: currentGame.id, move }).catch(() => {});
+    async (move: { from: string; to: string; promotion?: string }) => {
+      if (!currentGame) return false;
+      try {
+        await makeMove({ token, gameId: currentGame.id, move });
+        return true;
+      } catch (err) {
+        toast(errorMessage(err), "error");
+        return false;
+      }
     },
-    [currentGame, token, makeMove]
+    [currentGame, token, makeMove, toast]
   );
 
   const handleLeave = async () => {
+    const isInProgress = gameState?.status === "in-progress";
+    const isSpectating = currentGame?.color === "s";
+    const isResign = isInProgress && !isSpectating;
+
     const ok = await confirm({
-      title: "Leave Game?",
-      message: "You will forfeit if the game is still in progress.",
-      confirmText: "Leave",
+      title: isResign ? "Resign?" : "Leave Game?",
+      message: isResign
+        ? "You will forfeit the game."
+        : "Are you sure you want to leave?",
+      confirmText: isResign ? "Resign" : "Leave",
       cancelText: "Stay",
       variant: "destructive",
     });
@@ -130,6 +184,8 @@ function App() {
     const isMyTurn = !isSpectator && gameState.turn === currentGame.color && gameState.status === "in-progress";
     const isTopActive = gameState.turn === topColor && gameState.status === "in-progress";
     const isBottomActive = gameState.turn === bottomColor && gameState.status === "in-progress";
+    const isInProgress = gameState.status === "in-progress";
+    const leaveButtonText = isInProgress && !isSpectator ? "Resign" : "Leave";
 
     let status = "";
     if (gameState.status === "waiting") {
@@ -156,40 +212,45 @@ function App() {
     return (
       <Layout>
         <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 min-w-0 p-3 md:p-6 lg:p-8 flex flex-col items-center gap-2 md:gap-4 justify-center">
-            {/* Game header */}
-            <div className="w-full max-w-[560px] flex items-center justify-between">
+          <div className="flex-1 min-w-0 p-3 md:p-6 lg:p-8 flex flex-col items-center gap-2 md:gap-4 justify-center relative">
+             {/* Board Glow */}
+             <div className="absolute inset-0 bg-radial-gradient from-white/5 to-transparent opacity-50 pointer-events-none" />
+
+            {/* Game header — room code + status + resign/leave */}
+            <div className="w-full max-w-[560px] flex items-center justify-between relative z-10 p-2 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                <span className="font-mono text-sm text-zinc-400">
-                  #{gameState.roomId}
+                <span className="font-mono text-sm text-zinc-500/80">#</span>
+                <span className="font-mono text-sm text-zinc-300 font-bold tracking-wider">
+                  {gameState.roomId}
                 </span>
               </div>
-              <button onClick={handleLeave} className="text-xs text-zinc-500 hover:text-red-400 transition">
-                Leave
+              <span className={`text-sm font-medium ${gameState.status === "in-progress" ? "bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent" : "text-zinc-400"}`}>
+                {status}
+              </span>
+              <button onClick={handleLeave} className="text-xs font-medium text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-wide">
+                {leaveButtonText}
               </button>
             </div>
 
             {/* Top player info */}
-            <div className="w-full max-w-[560px] flex items-center gap-3 px-4 py-2.5 bg-zinc-900/50 rounded-lg border border-zinc-800">
-              <div className={`w-3 h-3 rounded-full ${isTopActive ? "bg-amber-500" : "bg-zinc-700"}`} />
-              <span className="text-sm text-zinc-300 font-medium">{topName || "Waiting..."}</span>
-              {gameState.isCheck && isTopActive && <span className="text-xs text-red-400 ml-auto">CHECK</span>}
+            <div className="w-full max-w-[560px] flex items-center gap-3 px-4 py-3 glass rounded-xl relative z-10 transition-colors">
+              <div className={`w-2 h-2 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isTopActive ? "bg-amber-500 ring-amber-500/50" : "bg-zinc-700 ring-transparent"}`} />
+              <span className={`text-sm font-medium transition-colors ${isTopActive ? "text-white" : "text-zinc-500"}`}>
+                {topName || "Waiting..."}
+              </span>
+              {gameState.isCheck && isTopActive && <span className="text-xs font-bold text-red-400 ml-auto tracking-wider">CHECK</span>}
             </div>
 
             {/* Board */}
             <Board fen={gameState.fen} color={currentGame.color} isMyTurn={isMyTurn} onMove={handleMove} />
 
             {/* Bottom player info */}
-            <div className="w-full max-w-[560px] flex items-center gap-3 px-4 py-2.5 bg-zinc-900/50 rounded-lg border border-zinc-800">
-              <div className={`w-3 h-3 rounded-full ${isBottomActive ? "bg-green-500" : "bg-zinc-700"}`} />
-              <span className="text-sm text-white font-medium">{bottomName}{!isSpectator && " (You)"}</span>
-              {gameState.isCheck && isBottomActive && <span className="text-xs text-red-400 ml-auto">CHECK</span>}
-            </div>
-
-            {/* Status */}
-            <div className="text-center py-2 px-4 bg-zinc-900 rounded-full border border-zinc-800">
-              <span className="text-sm text-zinc-300">{status}</span>
+            <div className="w-full max-w-[560px] flex items-center gap-3 px-4 py-3 glass rounded-xl relative z-10">
+              <div className={`w-2 h-2 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isBottomActive ? "bg-green-500 ring-green-500/50" : "bg-zinc-700 ring-transparent"}`} />
+              <span className={`text-sm font-medium transition-colors ${isBottomActive ? "text-white" : "text-zinc-500"}`}>
+                {bottomName}{!isSpectator && " (You)"}
+              </span>
+              {gameState.isCheck && isBottomActive && <span className="text-xs font-bold text-red-400 ml-auto tracking-wider">CHECK</span>}
             </div>
           </div>
 
@@ -228,15 +289,25 @@ function App() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter your name"
+          maxLength={24}
           className="input w-full max-w-sm text-center"
         />
 
         {/* Actions */}
         <div className="flex flex-col gap-3 w-full max-w-sm">
-          <button onClick={handleCreate} className="btn btn-primary w-full shadow-lg shadow-white/10">
-            Create Game
-          </button>
-          <button onClick={() => handleJoin()} className="btn btn-secondary w-full">
+          {activeGame ? (
+            <button
+              onClick={() => setCurrentGame({ id: activeGame.gameId, roomId: activeGame.roomId, color: activeGame.color })}
+              className="btn btn-primary w-full shadow-lg shadow-white/10 hover:shadow-white/20 transition-all font-semibold"
+            >
+              Rejoin Game
+            </button>
+          ) : (
+            <button onClick={handleCreate} className="btn btn-primary w-full shadow-lg shadow-white/10 hover:shadow-white/20 transition-all font-semibold">
+              Create Game
+            </button>
+          )}
+          <button onClick={() => handleJoin()} disabled={!!activeGame} className="btn btn-secondary w-full hover:bg-white/5 hover:border-white/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
             Quick Match
           </button>
         </div>
@@ -252,7 +323,8 @@ function App() {
           />
           <button 
             onClick={() => roomCode.trim() && handleJoin(roomCode)} 
-            className="btn btn-secondary px-6"
+            disabled={!!activeGame}
+            className="btn btn-secondary px-6 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Join
           </button>
