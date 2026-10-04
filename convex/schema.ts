@@ -1,43 +1,36 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { gameStatus, gameWinner } from "./lib/validators";
 
 export default defineSchema({
-  // Users: Ephemeral or persistent based on token
+  // Guests identified by a client-generated token
   users: defineTable({
     name: v.string(),
-    token: v.string(), // Client-side generated UUID
+    token: v.string(),
     lastSeen: v.number(),
     isOnline: v.boolean(),
   })
     .index("by_token", ["token"])
-    .index("by_online", ["isOnline", "lastSeen"]), // For counting online users
+    .index("by_online", ["isOnline", "lastSeen"]),
 
-  // Games: The core state
   games: defineTable({
     roomId: v.string(), // 6-char code
-    pgn: v.string(),    // Standard chess notation standard
+    pgn: v.string(),
     playerWhite: v.id("users"),
     playerBlack: v.optional(v.id("users")),
-    whiteLeft: v.optional(v.boolean()), // Track if white player left
-    blackLeft: v.optional(v.boolean()), // Track if black player left
-    status: v.union(
-      v.literal("waiting"),
-      v.literal("in-progress"),
-      v.literal("finished"),
-      v.literal("archived")
-    ),
-    winner: v.optional(v.union(
-      v.literal("white"),
-      v.literal("black"),
-      v.literal("draw"),
-      v.literal("abandoned") // New: both players left
-    )),
+    whiteLeft: v.optional(v.boolean()),
+    blackLeft: v.optional(v.boolean()),
+    status: gameStatus,
+    winner: v.optional(gameWinner),
     createdAt: v.number(),
+    updatedAt: v.optional(v.number()), // last move, join, or leave
   })
     .index("by_room_code", ["roomId"])
-    .index("by_status", ["status"]), // For matchmaking
+    .index("by_status", ["status", "createdAt"]) // matchmaking and waiting-room expiry
+    .index("by_status_updated", ["status", "updatedAt"]) // idle and finished cleanup
+    .index("by_player_white", ["playerWhite", "status"])
+    .index("by_player_black", ["playerBlack", "status"]),
 
-  // Messages: Chat per game
   messages: defineTable({
     gameId: v.id("games"),
     userId: v.id("users"),

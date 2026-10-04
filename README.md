@@ -1,30 +1,24 @@
-# Realtime Multiplayer Chess App
+# Realtime multiplayer chess
 
-Built with **React**, **Convex**, and **Tailwind CSS**.
+React, Convex, Tailwind and chessground. Two players, a room code or quick match, and a chat with GIFs.
 
-## Quick Start
+## Run locally
 
-1.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
+```bash
+npm install
+npx convex dev   # first run asks you to log in, then writes VITE_CONVEX_URL to .env.local
+npm run dev      # in a second terminal
+```
 
-2.  **Initialize Convex**:
-    ```bash
-    npx convex dev
-    ```
-    This will prompt you to login and set up the project.
+## How it works
 
-3.  **Run Locally**:
-    ```bash
-    npm run dev
-    ```
+- Guests have no accounts. The browser stores a random token in localStorage, and Convex maps it to a user.
+- The server owns the game. `games.makeMove` replays the PGN with chess.js and rejects illegal or out-of-turn moves.
+- Leaving a game in progress counts as a resignation.
+- Crons (`convex/crons.ts`) mark users offline when their heartbeat stops, expire lobbies after 30 minutes, end games idle for 2 hours, and delete finished games after 24 hours.
+- Thrown errors use `ConvexError` so the message reaches the client on a production deployment.
 
-## Features
-- Realtime Chess (Two-player)
-- Matchmaking & Room Codes
-- Chat with GIFs (GoofyGen)
-- Online User Count
+## Deploy
 
-## Deployment
-Deploy to Vercel and provide the `CONVEX_DEPLOYMENT_URL`.
+1. Run `npx convex deploy` to push the backend to production.
+2. Deploy the frontend to Vercel with build command `npx convex deploy --cmd "npm run build"` and the `CONVEX_DEPLOY_KEY` environment variable set. That command also sets `VITE_CONVEX_URL` for the build.

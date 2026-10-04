@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as crons from "../crons.js";
 import type * as games from "../games.js";
 import type * as lib_helpers from "../lib/helpers.js";
+import type * as lib_validators from "../lib/validators.js";
 import type * as messages from "../messages.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
@@ -21,8 +23,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  crons: typeof crons;
   games: typeof games;
   "lib/helpers": typeof lib_helpers;
+  "lib/validators": typeof lib_validators;
   messages: typeof messages;
   users: typeof users;
   utils: typeof utils;

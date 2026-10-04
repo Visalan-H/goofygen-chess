@@ -1,40 +1,66 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { MAX_MESSAGES_PER_GAME, requireGame, requireUser } from "./lib/helpers";
+
+const MAX_TEXT_LENGTH = 200;
+const GIPHY_URL = /^https:\/\/media\d*\.giphy\.com\/media\/[\w\-./]+$/;
 
 export const send = mutation({
   args: { token: v.string(), gameId: v.id("games"), text: v.optional(v.string()), gifUrl: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await ctx.db.query("users").withIndex("by_token", q => q.eq("token", args.token)).first();
-    if (!user) throw new Error("Unauthorized");
+  returns: v.null(),
+  handler: async (ctx, { token, gameId, text, gifUrl }) => {
+    const user = await requireUser(ctx, token);
+    await requireGame(ctx, gameId);
 
-    if (args.text && args.text.length > 200) throw new Error("Message too long");
+    const cleanText = text?.trim();
+    if (!cleanText && !gifUrl) throw new ConvexError("Empty message");
+    if (cleanText && cleanText.length > MAX_TEXT_LENGTH) throw new ConvexError("Message too long");
+    if (gifUrl && (gifUrl.length > 500 || !GIPHY_URL.test(gifUrl))) throw new ConvexError("Invalid GIF");
+
+    const existing = await ctx.db
+      .query("messages")
+      .withIndex("by_game", (q) => q.eq("gameId", gameId))
+      .take(MAX_MESSAGES_PER_GAME);
+    if (existing.length >= MAX_MESSAGES_PER_GAME) throw new ConvexError("Chat limit reached for this game");
 
     await ctx.db.insert("messages", {
-        gameId: args.gameId,
-        userId: user._id,
-        text: args.text,
-        gifUrl: args.gifUrl,
-        createdAt: Date.now()
+      gameId,
+      userId: user._id,
+      text: cleanText || undefined,
+      gifUrl,
+      createdAt: Date.now(),
     });
-  }
+    return null;
+  },
 });
 
 export const list = query({
   args: { gameId: v.id("games") },
-  handler: async (ctx, args) => {
-    const messages = await ctx.db.query("messages")
-        .withIndex("by_game", q => q.eq("gameId", args.gameId))
-        .order("desc") // Get newest first
-        .take(50);
-    
-    const userIds = [...new Set(messages.map(m => m.userId))];
-    const users = await Promise.all(userIds.map(id => ctx.db.get(id)));
-    const userMap = new Map();
-    users.forEach(u => u && userMap.set(u._id, u.name));
+  returns: v.array(
+    v.object({
+      _id: v.id("messages"),
+      _creationTime: v.number(),
+      gameId: v.id("games"),
+      userId: v.id("users"),
+      text: v.optional(v.string()),
+      gifUrl: v.optional(v.string()),
+      createdAt: v.number(),
+      sender: v.string(),
+    }),
+  ),
+  handler: async (ctx, { gameId }) => {
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_game", (q) => q.eq("gameId", gameId))
+      .order("desc")
+      .take(50);
 
-    return messages.reverse().map(m => ({ // Return in chronological order
-        ...m,
-        sender: userMap.get(m.userId) || "Unknown"
-    }));
-  }
+    const names = new Map<string, string>();
+    for (const userId of new Set(messages.map((m) => m.userId))) {
+      const user = await ctx.db.get("users", userId);
+      if (user) names.set(userId, user.name);
+    }
+
+    return messages.reverse().map((m) => ({ ...m, sender: names.get(m.userId) ?? "Unknown" }));
+  },
 });
