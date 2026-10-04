@@ -48,12 +48,12 @@ export function Chat({ gameId, userToken }: ChatProps) {
   };
 
   return (
-    <div className="flex flex-col flex-1 lg:flex-initial lg:flex-shrink-0 lg:h-auto lg:min-h-[600px] w-full lg:w-[340px] glass border-t lg:border-t-0 lg:border-l border-white/5 min-h-0">
-      <div className="p-4 border-b border-white/5 text-xs text-zinc-400 font-medium tracking-wider uppercase">
+    <div className="chat-panel relative flex flex-col glass min-h-0 rounded-none border-x-0 border-b-0">
+      <div className="px-4 py-2.5 shrink-0 border-b border-white/5 text-xs text-zinc-400 font-medium tracking-wider uppercase">
         Chat
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-zinc-500 text-sm text-center mt-8">No messages yet</p>
         )}
@@ -69,7 +69,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
       </div>
 
       {showGifs && (
-        <div className="h-36 overflow-y-auto border-t border-white/5 bg-zinc-900/80 p-2 grid grid-cols-3 gap-1">
+        <div className="absolute inset-x-0 bottom-full z-20 max-h-[40dvh] h-36 overflow-y-auto border-t border-white/10 bg-zinc-900/95 backdrop-blur p-2 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-1">
           {goofyGifs.map((g) => (
             <button key={g.id} type="button" onClick={() => handleGif(g.url)} className="p-0 border-0 bg-transparent">
               <img
@@ -83,17 +83,17 @@ export function Chat({ gameId, userToken }: ChatProps) {
         </div>
       )}
 
-      <div className="p-3 border-t border-white/5 flex gap-2">
+      <div className="p-2 sm:p-3 shrink-0 border-t border-white/5 flex gap-2">
         <button
           type="button"
           aria-label="Toggle GIF picker"
           onClick={() => setShowGifs(!showGifs)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition text-sm"
+          className="w-10 h-10 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition text-sm"
         >
           😊
         </button>
         <input
-          className="flex-1 min-w-0 bg-white/5 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-500 outline-none focus:ring-1 focus:ring-white/20 transition-all"
+          className="flex-1 min-w-0 bg-white/5 rounded-lg px-3 py-2 text-base sm:text-sm text-white placeholder:text-zinc-500 outline-none focus:ring-1 focus:ring-white/20 transition-all"
           placeholder="Message..."
           maxLength={200}
           value={text}
@@ -106,7 +106,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
           type="button"
           aria-label="Send message"
           onClick={() => void handleSend()}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition text-sm"
+          className="w-10 h-10 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition text-sm"
         >
           ➤
         </button>
