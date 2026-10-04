@@ -74,7 +74,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
             {goofyGifs.map((g) => (
               <button key={g.id} type="button" onClick={() => handleGif(g.url)} className="p-0 border-0 bg-transparent">
                 <img
-                  src={g.url}
+                  src={g.thumb}
                   alt={g.keywords.join(", ")}
                   loading="lazy"
                   className="w-full h-14 object-cover cursor-pointer hover:opacity-70 rounded"
