@@ -177,6 +177,7 @@ function App() {
       variant: "destructive",
     });
     if (!ok) return;
+    if (isResign) toast("You resigned.", "info");
     if (currentGame) await leaveGame({ token, gameId: currentGame.id }).catch(() => {});
     setCurrentGame(null);
   };
@@ -327,6 +328,9 @@ function App() {
             onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
             placeholder="Room code"
             maxLength={6}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && roomCode.trim()) void handleJoin(roomCode);
+            }}
             className="input flex-1 min-w-0 text-center uppercase tracking-widest bg-zinc-900/50"
           />
           <button 
