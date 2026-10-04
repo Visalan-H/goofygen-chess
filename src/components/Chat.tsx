@@ -55,7 +55,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
         {messages.length === 0 && (
-          <p className="text-zinc-500 text-sm text-center mt-8">No messages</p>
+          <p className="text-zinc-500 text-sm text-center mt-8">Quiet crowd. Say something.</p>
         )}
         {messages.map((m) => (
           <div key={m._id} className="text-sm">
