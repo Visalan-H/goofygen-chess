@@ -1,4 +1,4 @@
-import { useState, createContext, useContext, useCallback } from "react";
+import { useState, createContext, useContext, useCallback, type ReactNode } from "react";
 
 type ConfirmOptions = {
   title: string;
@@ -18,7 +18,7 @@ export function useConfirm() {
   return ctx;
 }
 
-export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{
     open: boolean;
     options: ConfirmOptions;
@@ -46,8 +46,8 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       {children}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/80" onClick={handleCancel} />
-          <div className="relative z-10 w-full max-w-sm mx-4 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleCancel} />
+          <div className="relative z-10 w-full max-w-sm mx-4 glass rounded-xl shadow-2xl">
             <div className="p-6">
               <h2 className="text-lg font-semibold text-white">{options.title}</h2>
               <p className="mt-2 text-sm text-zinc-400">{options.message}</p>
