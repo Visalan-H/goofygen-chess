@@ -3,7 +3,8 @@ import { ConvexError, v } from "convex/values";
 import { MAX_MESSAGES_PER_GAME, requireGame, requireUser } from "./lib/helpers";
 
 const MAX_TEXT_LENGTH = 200;
-const GIPHY_URL = /^https:\/\/media\d*\.giphy\.com\/media\/[\w\-./]+$/;
+// One id segment and one file name, so ".." and extra path pieces cannot get through
+const GIPHY_URL = /^https:\/\/media\d*\.giphy\.com\/media\/[\w-]+\/[\w-]+\.(gif|webp)$/;
 
 export const send = mutation({
   args: { token: v.string(), gameId: v.id("games"), text: v.optional(v.string()), gifUrl: v.optional(v.string()) },
