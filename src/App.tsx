@@ -107,15 +107,15 @@ function App() {
     let message: string;
     let type: "info" | "success" | "error" = "info";
     if (state.winner === "draw") {
-      message = "Draw! The game ended in a draw.";
+      message = "Draw! Everyone is goofy, nobody wins.";
     } else if (state.winner === "abandoned") {
       message = "Game abandoned.";
       type = "error";
     } else if (game.color === "s") {
-      message = `Game over. ${state.winner === "white" ? state.whiteName : state.blackName} won!`;
+      message = `${state.winner === "white" ? state.whiteName : state.blackName} won. Goofy ahh play!`;
     } else {
       const iWon = (game.color === "w" ? "white" : "black") === state.winner;
-      message = iWon ? "You won! Great game!" : "You lost. Better luck next time.";
+      message = iWon ? "You won! Goofy ahh victory!" : "You lost. You got goofed. Run it back?";
       type = iWon ? "success" : "error";
     }
     toast(message, type);
@@ -128,7 +128,7 @@ function App() {
   }, [finishedGameId, toast, leaveGame, token]);
 
   const handleCreate = async () => {
-    if (!name.trim()) return toast("Enter your name first", "error");
+    if (!name.trim()) return toast("Pick a goofy name first", "error");
     try {
       const result = await createGame({ token });
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: "w" });
@@ -138,10 +138,10 @@ function App() {
   };
 
   const handleJoin = async (code?: string) => {
-    if (!name.trim()) return toast("Enter your name first", "error");
+    if (!name.trim()) return toast("Pick a goofy name first", "error");
     try {
       const result = await joinGame({ token, roomId: code || undefined });
-      if (!result) return toast("No games available", "info");
+      if (!result) return toast("No goofballs waiting. Start a game!", "info");
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: result.color });
     } catch (err) {
       toast(errorMessage(err), "error");
@@ -168,12 +168,12 @@ function App() {
     const isResign = isInProgress && !isSpectating;
 
     const ok = await confirm({
-      title: isResign ? "Resign?" : "Leave Game?",
+      title: isResign ? "Resign?" : "Leave the game?",
       message: isResign
-        ? "You will forfeit the game."
-        : "Are you sure you want to leave?",
+        ? "You forfeit and the goofballs win."
+        : "Run away from the goofy fun?",
       confirmText: isResign ? "Resign" : "Leave",
-      cancelText: "Stay",
+      cancelText: "Keep playing",
       variant: "destructive",
     });
     if (!ok) return;
@@ -198,23 +198,23 @@ function App() {
 
     let status = "";
     if (gameState.status === "waiting") {
-      status = "Waiting for opponent...";
+      status = "Waiting for a goofball...";
     } else if (gameState.status === "in-progress") {
       if (isSpectator) {
         status = `${gameState.turn === "w" ? gameState.whiteName : gameState.blackName}'s turn`;
       } else {
-        status = isMyTurn ? "Your turn" : "Opponent's turn";
+        status = isMyTurn ? "Your turn, cook!" : "Opponent is cooking...";
       }
     } else if (gameState.status === "finished") {
       if (gameState.winner === "draw") {
-        status = "Draw!";
+        status = "Draw. Nobody cooked.";
       } else if (gameState.winner === "abandoned") {
         status = "Game abandoned";
       } else if (isSpectator) {
         status = `${gameState.winner === "white" ? gameState.whiteName : gameState.blackName} won!`;
       } else {
         const myWinnerKey = currentGame.color === "w" ? "white" : "black";
-        status = myWinnerKey === gameState.winner ? "You won!" : "You lost";
+        status = myWinnerKey === gameState.winner ? "W! Goofy ahh victory" : "L. You got goofed";
       }
     }
 
@@ -274,7 +274,7 @@ function App() {
       <Layout>
         <div className="flex-1 p-8 md:p-16 flex flex-col items-center justify-center gap-4">
           <div className="w-8 h-8 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
-          <p className="text-zinc-500 text-sm">Loading game...</p>
+          <p className="text-zinc-500 text-sm">Loading the goofy...</p>
         </div>
       </Layout>
     );
@@ -287,17 +287,17 @@ function App() {
       <div className="home-inner min-h-full p-5 sm:p-10 md:p-16 flex flex-col items-center justify-center gap-6 sm:gap-8 md:gap-10">
         {/* Hero */}
         <div className="home-hero text-center space-y-2 sm:space-y-3">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-zinc-100">
-            Chess
+          <h1 className="wordmark text-5xl sm:text-6xl md:text-7xl">
+            GOOFYGEN <span className="wordmark-face" aria-hidden="true">🤪</span>
           </h1>
-          <p className="text-zinc-500 text-sm md:text-base">Real-time multiplayer chess</p>
+          <p className="text-zinc-500 text-sm md:text-base">Chess, but goofy ahh</p>
         </div>
 
         {/* Name input */}
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Enter your name"
+          placeholder="Your goofy name"
           maxLength={24}
           className="input w-full max-w-sm text-center"
         />
@@ -309,15 +309,15 @@ function App() {
               onClick={() => setCurrentGame({ id: activeGame.gameId, roomId: activeGame.roomId, color: activeGame.color })}
               className="btn btn-primary w-full shadow-lg shadow-white/10 hover:shadow-white/20 transition-all font-semibold"
             >
-              Rejoin Game
+              Back to the goofy game
             </button>
           ) : (
             <button onClick={handleCreate} className="btn btn-primary w-full shadow-lg shadow-white/10 hover:shadow-white/20 transition-all font-semibold">
-              Create Game
+              Start a goofy game
             </button>
           )}
           <button onClick={() => handleJoin()} disabled={!!activeGame} className="btn btn-secondary w-full hover:bg-white/5 hover:border-white/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-            Quick Match
+            Find a goofball
           </button>
         </div>
 
@@ -346,11 +346,11 @@ function App() {
         <div className="flex gap-8 text-sm text-zinc-500">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            {onlineCount} browsing
+            {onlineCount} goofballs browsing
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            {playersCount} playing
+            {playersCount} goofballs playing
           </div>
         </div>
       </div>

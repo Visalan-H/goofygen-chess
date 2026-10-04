@@ -50,12 +50,12 @@ export function Chat({ gameId, userToken }: ChatProps) {
   return (
     <div className="chat-panel relative flex flex-col glass min-h-0 rounded-none border-x-0 border-b-0">
       <div className="px-4 py-2.5 shrink-0 border-b border-white/5 text-xs text-zinc-400 font-medium tracking-wider uppercase">
-        Chat
+        Goofy chat
       </div>
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
         {messages.length === 0 && (
-          <p className="text-zinc-500 text-sm text-center mt-8">No messages yet</p>
+          <p className="text-zinc-500 text-sm text-center mt-8">No goofy business yet</p>
         )}
         {messages.map((m) => (
           <div key={m._id} className="text-sm">
@@ -85,15 +85,15 @@ export function Chat({ gameId, userToken }: ChatProps) {
         )}
         <button
           type="button"
-          aria-label="Toggle GIF picker"
+          aria-label="Toggle goofy GIF picker"
           onClick={() => setShowGifs(!showGifs)}
           className="w-10 h-10 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition text-sm"
         >
-          😊
+          🤪
         </button>
         <input
           className="flex-1 min-w-0 bg-white/5 rounded-lg px-3 py-2 text-base sm:text-sm text-white placeholder:text-zinc-500 outline-none focus:ring-1 focus:ring-white/20 transition-all"
-          placeholder="Message..."
+          placeholder="Say something goofy..."
           maxLength={200}
           value={text}
           onChange={(e) => setText(e.target.value)}
