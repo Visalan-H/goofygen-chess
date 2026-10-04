@@ -46,8 +46,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleCancel} />
-          <div className="relative z-10 w-full max-w-sm mx-4 glass rounded-xl shadow-2xl">
+          <div className="absolute inset-0 bg-black/70" onClick={handleCancel} />
+          <div className="relative z-10 w-full max-w-sm mx-4 glass rounded-xl">
             <div className="p-6">
               <h2 className="text-lg font-semibold text-white">{options.title}</h2>
               <p className="mt-2 text-sm text-zinc-400">{options.message}</p>

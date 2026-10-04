@@ -4,7 +4,17 @@ import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
 type ToastType = "info" | "success" | "error";
 
 export function Toaster() {
-  return <SonnerToaster position="top-center" richColors theme="dark" closeButton />;
+  return <SonnerToaster
+      position="top-center"
+      theme="dark"
+      toastOptions={{
+        unstyled: true,
+        classNames: {
+          toast: "flex w-full items-center gap-3 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background shadow-lg",
+          error: "!bg-destructive !text-white",
+        },
+      }}
+    />;
 }
 
 // Defined once at module level so the reference stays stable across renders.
