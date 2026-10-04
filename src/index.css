@@ -219,18 +219,21 @@ body {
 }
 
 .board-col {
-  flex: none;
+  flex: 1;
+  min-height: 0;
   container-type: inline-size;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   padding: 0.5rem;
 }
 
+/* header 2rem + two bars 2.25rem + gaps 0.375rem x3 + drawer bar 3rem, rounded up */
 .game-stack {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  width: min(100%, 560px, calc(100dvh - 17rem));
+  width: min(100%, 560px, calc(100dvh - 12rem));
 }
 
 .game-board {
@@ -249,9 +252,88 @@ body {
   padding: 0 0.25rem;
 }
 
+/* Chat is a drawer on phones: a one-line bar pinned under the board that opens into a sheet */
 .chat-panel {
+  flex: none;
+  min-height: 0;
+  margin-top: auto;
+}
+
+.chat-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: none;
+  width: 100%;
+  height: 3rem;
+  padding: 0 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-bar:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: -2px;
+}
+
+.chat-preview {
   flex: 1;
-  min-height: 7rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-muted-foreground);
+  font-size: 0.875rem;
+}
+
+.chat-badge {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--color-foreground);
+  color: var(--color-background);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chat-title,
+.chat-body {
+  display: none;
+}
+
+.chat-spacer {
+  flex: none;
+  height: 3rem;
+  margin-top: auto;
+}
+
+.chat-open {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 40rem;
+  height: min(46dvh, 460px);
+  z-index: 30;
+  border-radius: 1rem 1rem 0 0 !important;
+  border-top: 1px solid var(--color-border) !important;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.6);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.chat-open .chat-body {
+  display: flex;
+}
+
+.chat-open .chat-bar {
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* Lobby, phones and tablets: the word on top, the controls pinned to the thumb */
@@ -405,10 +487,33 @@ body {
   .chat-panel {
     grid-column: 2;
     grid-row: 4;
+    flex: 1;
+    margin-top: 0;
     min-height: 0;
     border: 1px solid var(--color-border);
     border-radius: 0.75rem;
     overflow: hidden;
+  }
+
+  .chat-bar,
+  .chat-spacer {
+    display: none;
+  }
+
+  .chat-title {
+    display: block;
+  }
+
+  .chat-body {
+    display: flex;
+  }
+
+  .chat-open {
+    position: static;
+    height: auto;
+    max-width: none;
+    box-shadow: none;
+    padding-bottom: 0;
   }
 }
 
@@ -449,8 +554,30 @@ body {
     flex: none;
     width: 15rem;
     min-height: 0;
+    margin-top: 0;
     border-top: 0;
     border-left: 1px solid var(--color-border);
+  }
+
+  .chat-bar,
+  .chat-spacer {
+    display: none;
+  }
+
+  .chat-title {
+    display: block;
+  }
+
+  .chat-body {
+    display: flex;
+  }
+
+  .chat-open {
+    position: static;
+    height: auto;
+    max-width: none;
+    box-shadow: none;
+    padding-bottom: 0;
   }
 
   /* Use the full screen: no outer padding or rounded frame */
