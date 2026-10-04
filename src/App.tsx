@@ -225,7 +225,7 @@ function App() {
             <div className="game-stack">
               {/* Room code, status, resign or leave */}
               <div className="game-head flex items-center justify-between gap-3 px-1">
-                <span className="min-w-0 truncate text-lg sm:text-xl font-semibold tracking-tight">{status}</span>
+                <span className="game-status min-w-0 truncate text-lg font-semibold tracking-tight">{status}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="hidden min-[400px]:inline font-mono text-xs text-zinc-500 tracking-wider">{gameState.roomId}</span>
                   <button onClick={handleLeave} className="-mr-1 px-3 h-full text-sm font-medium text-zinc-400 hover:text-white transition-colors">
@@ -279,9 +279,9 @@ function App() {
   return (
     <Layout>
       <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className="home-inner min-h-full p-5 sm:p-10 md:p-16 flex flex-col items-center justify-center gap-6 sm:gap-8 md:gap-10">
+      <div className="home-inner">
         {/* Hero */}
-        <div className="home-hero w-full max-w-sm space-y-3">
+        <div className="home-hero space-y-3">
           <p className="text-sm font-semibold tracking-tight">Goofygen Chess</p>
           <h1 className="hero-word">Play.</h1>
           <p className="text-zinc-500 text-base md:text-lg">Street chess, online. Loser dances.</p>
@@ -293,11 +293,11 @@ function App() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
           maxLength={24}
-          className="input w-full max-w-sm"
+          className="input"
         />
 
         {/* Actions */}
-        <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
+        <div className="home-actions">
           {activeGame ? (
             <button
               onClick={() => setCurrentGame({ id: activeGame.gameId, roomId: activeGame.roomId, color: activeGame.color })}
@@ -316,7 +316,7 @@ function App() {
         </div>
 
         {/* Join by code */}
-        <div className="flex gap-2 w-full max-w-sm">
+        <div className="home-join">
           <input
             value={roomCode}
             onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
@@ -337,7 +337,7 @@ function App() {
         </div>
 
         {/* Stats */}
-        <p className="w-full max-w-sm text-sm text-zinc-500">
+        <p className="home-stats">
           {onlineCount} in the lobby, {playersCount} at a board
         </p>
       </div>

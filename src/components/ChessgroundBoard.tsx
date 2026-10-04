@@ -89,13 +89,10 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
   return (
     <div
       ref={containerRef}
+      className="game-board"
       style={{
-        width: "100%",
-        maxWidth: "560px",
         aspectRatio: "1 / 1",
-        borderRadius: "0.75rem",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-        boxShadow: "0 20px 50px -12px rgba(0, 0, 0, 0.5)",
+        borderRadius: "0.5rem",
         overflow: "hidden",
         position: "relative",
         zIndex: 10,
