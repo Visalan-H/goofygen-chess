@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell bg-background flex items-center justify-center sm:p-4 overflow-hidden">
-      <div className="w-full max-w-7xl h-full glass overflow-hidden sm:rounded-xl flex flex-col min-h-0">
+      <div className="w-full h-full glass overflow-hidden sm:rounded-xl flex flex-col min-h-0">
         {children}
       </div>
     </div>

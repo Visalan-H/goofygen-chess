@@ -209,7 +209,7 @@ body {
   }
 }
 
-/* Portrait phones and tablets: board on top, chat fills the rest */
+/* Game, phones and tablets in portrait: board on top, chat fills the rest */
 .game-view {
   display: flex;
   flex-direction: column;
@@ -233,6 +233,10 @@ body {
   width: min(100%, 560px, calc(100dvh - 17rem));
 }
 
+.game-board {
+  width: 100%;
+}
+
 .game-head {
   height: 2rem;
 }
@@ -250,8 +254,166 @@ body {
   min-height: 7rem;
 }
 
-/* Desktop and landscape phones: board beside chat, sized by the available height */
-@media (min-width: 960px), (max-height: 520px) and (orientation: landscape) {
+/* Lobby, phones and tablets: the word on top, the controls pinned to the thumb */
+.home-inner {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+.home-inner > * {
+  width: 100%;
+  max-width: 30rem;
+}
+
+.home-hero {
+  margin-bottom: auto;
+  padding-top: 0.5rem;
+}
+
+.hero-word {
+  font-weight: 600;
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+  font-size: clamp(6rem, 36vw, 10rem);
+}
+
+.home-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.home-join {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.home-stats {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+}
+
+/* Desktop: the lobby splits into a giant word and a form, the game into a big board and a side panel */
+@media (min-width: 960px) and (min-height: 521px) {
+  .home-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
+    align-content: center;
+    align-items: center;
+    column-gap: clamp(3rem, 8vw, 9rem);
+    row-gap: 0.75rem;
+    padding: 3rem clamp(2rem, 6vw, 7rem);
+  }
+
+  .home-inner > * {
+    grid-column: 2;
+    max-width: none;
+  }
+
+  .home-inner > .home-hero {
+    grid-column: 1;
+    grid-row: 1 / span 5;
+    margin: 0;
+    padding: 0;
+  }
+
+  .home-inner .btn,
+  .home-inner .input {
+    height: 3.25rem;
+    font-size: 1.0625rem;
+  }
+
+  .home-stats {
+    font-size: 1rem;
+  }
+
+  .hero-word {
+    font-size: clamp(8rem, 15vw, 17rem);
+  }
+
+  .home-hero p:last-child {
+    font-size: 1.25rem;
+  }
+
+  .game-view {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 26rem;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    column-gap: 2rem;
+    row-gap: 0.75rem;
+    padding: 1.5rem;
+  }
+
+  .board-col,
+  .game-stack {
+    display: contents;
+  }
+
+  .game-board {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: center;
+    justify-self: center;
+    width: min(100%, calc(100dvh - 8.5rem));
+  }
+
+  /* Room code and Resign sit on a small row above the large status */
+  .game-head {
+    grid-column: 2;
+    grid-row: 1;
+    height: auto;
+    padding: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .game-head > div {
+    order: -1;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .game-status {
+    font-size: 1.875rem;
+    line-height: 1.1;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .game-stack > .player-bar {
+    grid-column: 2;
+    height: 3rem;
+    padding: 0 1rem;
+    border-radius: 0.75rem;
+    background: var(--color-secondary);
+  }
+
+  .game-stack > .player-bar:nth-child(2) {
+    grid-row: 2;
+  }
+
+  .game-stack > .player-bar:nth-child(4) {
+    grid-row: 3;
+  }
+
+  .chat-panel {
+    grid-column: 2;
+    grid-row: 4;
+    min-height: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+}
+
+/* Landscape phones: board beside a narrow chat, sized by the available height */
+@media (max-height: 520px) and (orientation: landscape) {
   .game-view {
     flex-direction: row;
   }
@@ -262,26 +424,10 @@ body {
     min-height: 0;
     align-items: center;
     container-type: size;
-    padding: 1rem;
-  }
-
-  /* header 2rem + two bars 2.25rem + gaps 0.375rem x3, rounded up */
-  .game-stack {
-    width: min(100cqw, 560px, calc(100cqh - 8rem));
-  }
-
-  .chat-panel {
-    flex: none;
-    width: 340px;
-    min-height: 0;
-  }
-}
-
-@media (max-height: 520px) and (orientation: landscape) {
-  .board-col {
     padding: 0.25rem 0.5rem;
   }
 
+  /* header 1.5rem + two bars 1.75rem + gaps 0.25rem x3, rounded up */
   .game-stack {
     gap: 0.25rem;
     width: min(100cqw, 560px, calc(100cqh - 5.5rem));
@@ -295,52 +441,26 @@ body {
     font-size: 0.75rem;
   }
 
-  /* Use the full screen: no outer padding or rounded frame */
-  .app-shell {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+  .player-bar {
+    height: 1.75rem;
   }
 
+  .chat-panel {
+    flex: none;
+    width: 15rem;
+    min-height: 0;
+    border-top: 0;
+    border-left: 1px solid var(--color-border);
+  }
+
+  /* Use the full screen: no outer padding or rounded frame */
   .app-shell > div {
     border-radius: 0;
     border: 0;
     box-shadow: none;
   }
 
-  .player-bar {
-    height: 1.75rem;
-  }
-
-  .chat-panel {
-    width: 15rem;
-  }
-}
-
-@media (min-width: 960px) {
-  .board-col {
-    padding: 1.5rem;
-  }
-}
-
-@media (min-width: 960px), (max-height: 520px) and (orientation: landscape) {
-  .chat-panel {
-    border-top: 0;
-    border-left: 1px solid var(--color-border);
-  }
-}
-
-/* Lobby: one large word is the whole hero */
-.hero-word {
-  font-weight: 600;
-  line-height: 0.9;
-  letter-spacing: -0.06em;
-  font-size: clamp(4.5rem, 24vw, 7rem);
-}
-
-/* Landscape phones: hero on the left, controls on the right, so the lobby fits without scrolling */
-@media (max-height: 520px) and (orientation: landscape) {
+  /* Lobby: word on the left, controls on the right, so it fits without scrolling */
   .home-inner {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -359,7 +479,8 @@ body {
 
   .home-inner > .home-hero {
     grid-column: 1;
-    grid-row: 1 / span 4;
+    grid-row: 1 / span 5;
+    padding: 0;
   }
 
   .hero-word {
