@@ -89,6 +89,14 @@ function App() {
     currentGameRef.current = currentGame;
   }, [gameState, currentGame]);
 
+  // The game was deleted while we were viewing it, for example by the lobby expiry cron
+  useEffect(() => {
+    if (currentGame && gameState === null) {
+      toast("That game no longer exists", "info");
+      setCurrentGame(null);
+    }
+  }, [currentGame, gameState, toast]);
+
   // Announce the result once per game, then return to the lobby after 5 seconds
   const finishedGameId = gameState?.status === "finished" ? currentGame?.id : undefined;
   useEffect(() => {
@@ -211,46 +219,44 @@ function App() {
 
     return (
       <Layout>
-        <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 min-w-0 p-3 md:p-6 lg:p-8 flex flex-col items-center gap-2 md:gap-4 justify-center relative">
-             {/* Board Glow */}
-             <div className="absolute inset-0 bg-radial-gradient from-white/5 to-transparent opacity-50 pointer-events-none" />
-
-            {/* Game header — room code + status + resign/leave */}
-            <div className="w-full max-w-[560px] flex items-center justify-between relative z-10 p-2 rounded-lg">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-sm text-zinc-500/80">#</span>
-                <span className="font-mono text-sm text-zinc-300 font-bold tracking-wider">
-                  {gameState.roomId}
+        <div className="game-view">
+          <div className="board-col">
+            <div className="game-stack">
+              {/* Room code, status, resign or leave */}
+              <div className="game-head flex items-center justify-between gap-2 px-1">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="font-mono text-xs sm:text-sm text-zinc-500/80">#</span>
+                  <span className="font-mono text-xs sm:text-sm text-zinc-300 font-bold tracking-wider">
+                    {gameState.roomId}
+                  </span>
+                </div>
+                <span className={`min-w-0 truncate text-xs sm:text-sm font-medium ${gameState.status === "in-progress" ? "bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent" : "text-zinc-400"}`}>
+                  {status}
                 </span>
+                <button onClick={handleLeave} className="shrink-0 -mr-1 px-3 h-full text-xs font-medium text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-wide">
+                  {leaveButtonText}
+                </button>
               </div>
-              <span className={`text-sm font-medium ${gameState.status === "in-progress" ? "bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent" : "text-zinc-400"}`}>
-                {status}
-              </span>
-              <button onClick={handleLeave} className="text-xs font-medium text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-wide">
-                {leaveButtonText}
-              </button>
-            </div>
 
-            {/* Top player info */}
-            <div className="w-full max-w-[560px] flex items-center gap-3 px-4 py-3 glass rounded-xl relative z-10 transition-colors">
-              <div className={`w-2 h-2 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isTopActive ? "bg-amber-500 ring-amber-500/50" : "bg-zinc-700 ring-transparent"}`} />
-              <span className={`text-sm font-medium transition-colors ${isTopActive ? "text-white" : "text-zinc-500"}`}>
-                {topName || "Waiting..."}
-              </span>
-              {gameState.isCheck && isTopActive && <span className="text-xs font-bold text-red-400 ml-auto tracking-wider">CHECK</span>}
-            </div>
+              {/* Top player */}
+              <div className="player-bar">
+                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isTopActive ? "bg-amber-500 ring-amber-500/50" : "bg-zinc-700 ring-transparent"}`} />
+                <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isTopActive ? "text-white" : "text-zinc-500"}`}>
+                  {topName || "Waiting..."}
+                </span>
+                {gameState.isCheck && isTopActive && <span className="text-xs font-bold text-red-400 ml-auto tracking-wider">CHECK</span>}
+              </div>
 
-            {/* Board */}
-            <Board fen={gameState.fen} color={currentGame.color} isMyTurn={isMyTurn} onMove={handleMove} />
+              <Board fen={gameState.fen} color={currentGame.color} isMyTurn={isMyTurn} onMove={handleMove} />
 
-            {/* Bottom player info */}
-            <div className="w-full max-w-[560px] flex items-center gap-3 px-4 py-3 glass rounded-xl relative z-10">
-              <div className={`w-2 h-2 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isBottomActive ? "bg-green-500 ring-green-500/50" : "bg-zinc-700 ring-transparent"}`} />
-              <span className={`text-sm font-medium transition-colors ${isBottomActive ? "text-white" : "text-zinc-500"}`}>
-                {bottomName}{!isSpectator && " (You)"}
-              </span>
-              {gameState.isCheck && isBottomActive && <span className="text-xs font-bold text-red-400 ml-auto tracking-wider">CHECK</span>}
+              {/* Bottom player */}
+              <div className="player-bar">
+                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isBottomActive ? "bg-green-500 ring-green-500/50" : "bg-zinc-700 ring-transparent"}`} />
+                <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isBottomActive ? "text-white" : "text-zinc-500"}`}>
+                  {bottomName}{!isSpectator && " (You)"}
+                </span>
+                {gameState.isCheck && isBottomActive && <span className="text-xs font-bold text-red-400 ml-auto tracking-wider">CHECK</span>}
+              </div>
             </div>
           </div>
 
@@ -261,10 +267,11 @@ function App() {
   }
 
   // LOADING
-  if (currentGame && !gameState) {
+  // Wait for the active-game lookup so a returning player never sees a flash of the lobby
+  if ((currentGame && !gameState) || (!currentGame && activeGame === undefined)) {
     return (
       <Layout>
-        <div className="p-8 md:p-16 flex flex-col items-center justify-center gap-4">
+        <div className="flex-1 p-8 md:p-16 flex flex-col items-center justify-center gap-4">
           <div className="w-8 h-8 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
           <p className="text-zinc-500 text-sm">Loading game...</p>
         </div>
@@ -275,9 +282,10 @@ function App() {
   // HOME VIEW
   return (
     <Layout>
-      <div className="p-6 md:p-16 flex flex-col items-center justify-center h-full gap-8 md:gap-10">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="home-inner min-h-full p-5 sm:p-10 md:p-16 flex flex-col items-center justify-center gap-6 sm:gap-8 md:gap-10">
         {/* Hero */}
-        <div className="text-center space-y-3">
+        <div className="home-hero text-center space-y-2 sm:space-y-3">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-zinc-100">
             Chess
           </h1>
@@ -319,12 +327,12 @@ function App() {
             onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
             placeholder="Room code"
             maxLength={6}
-            className="input flex-1 text-center uppercase tracking-widest bg-zinc-900/50"
+            className="input flex-1 min-w-0 text-center uppercase tracking-widest bg-zinc-900/50"
           />
           <button 
             onClick={() => roomCode.trim() && handleJoin(roomCode)} 
             disabled={!!activeGame}
-            className="btn btn-secondary px-6 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn btn-secondary shrink-0 px-5 sm:px-6 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Join
           </button>
@@ -341,6 +349,7 @@ function App() {
             {playersCount} playing
           </div>
         </div>
+      </div>
       </div>
     </Layout>
   );

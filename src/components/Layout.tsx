@@ -1,12 +1,12 @@
 import { ReactNode } from "react";
 
+// The shell always fills the viewport. Views scroll inside it, so the page itself never does.
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <div className="h-[100dvh] md:min-h-screen bg-background flex flex-col items-center justify-center md:p-4 relative overflow-hidden md:overflow-visible">
-      <div className="w-full max-w-7xl h-full md:h-auto glass md:shadow-2xl overflow-hidden md:rounded-xl relative z-10 flex flex-col">
+    <div className="app-shell bg-background flex items-center justify-center sm:p-4 overflow-hidden">
+      <div className="w-full max-w-7xl h-full glass sm:shadow-2xl overflow-hidden sm:rounded-xl flex flex-col min-h-0">
         {children}
       </div>
     </div>
   );
 }
-
