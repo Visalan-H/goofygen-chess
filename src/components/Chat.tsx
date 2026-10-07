@@ -80,7 +80,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
 
       <div className="relative p-2 sm:p-3 shrink-0 border-t border-border flex gap-2">
         {panel && (
-          <div className="absolute inset-x-0 bottom-full z-20 flex flex-col max-h-[40dvh] h-40 border-t border-border bg-zinc-900">
+          <div className="absolute inset-x-0 bottom-full z-20 flex flex-col max-h-[40dvh] h-28 sm:h-40 border-t border-border bg-zinc-900">
             <div className="flex gap-1 p-2 pb-0 shrink-0">
               {(["quick", "gif"] as const).map((tab) => (
                 <button
