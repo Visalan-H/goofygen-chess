@@ -87,7 +87,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
                   key={tab}
                   type="button"
                   onClick={() => setPanel(tab)}
-                  className={`px-3 h-8 rounded-lg text-sm font-medium transition-colors ${panel === tab ? "bg-secondary text-white" : "text-zinc-400 hover:text-white"}`}
+                  className={`px-3 h-8 rounded-full text-sm font-medium transition-colors ${panel === tab ? "bg-secondary text-foreground" : "text-zinc-400 hover:text-foreground"}`}
                 >
                   {tab === "quick" ? "Quick chat" : "GIFs"}
                 </button>
@@ -100,7 +100,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
                     key={msg}
                     type="button"
                     onClick={() => void handleQuick(msg)}
-                    className="min-h-10 px-3 py-1.5 rounded-lg bg-secondary hover:bg-zinc-700 text-left text-sm text-zinc-200 transition-colors"
+                    className="min-h-10 px-3 py-1.5 rounded-full bg-secondary hover:bg-zinc-700 text-left text-sm text-zinc-200 transition-colors"
                   >
                     {msg}
                   </button>
@@ -127,12 +127,12 @@ export function Chat({ gameId, userToken }: ChatProps) {
           aria-label="Quick chat and GIFs"
           aria-expanded={panel !== null}
           onClick={() => setPanel(panel ? null : "quick")}
-          className="w-10 h-10 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-lg bg-secondary hover:bg-zinc-700 text-zinc-300 hover:text-white transition text-lg font-medium"
+          className="w-10 h-10 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-full bg-secondary hover:bg-zinc-700 text-zinc-300 hover:text-foreground transition text-lg font-medium"
         >
           +
         </button>
         <input
-          className="flex-1 min-w-0 bg-transparent border border-input rounded-lg px-3 py-2 text-base sm:text-sm text-white placeholder:text-zinc-500 outline-none focus:border-ring transition-colors"
+          className="flex-1 min-w-0 bg-secondary border-0 rounded-full px-4 py-2 text-base sm:text-sm text-foreground placeholder:text-zinc-500 outline-none focus:border-ring transition-colors"
           placeholder="Message"
           maxLength={200}
           value={text}
@@ -145,7 +145,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
           type="button"
           aria-label="Send message"
           onClick={() => void handleSend()}
-          className="w-10 h-10 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-white transition text-xs font-semibold"
+          className="h-10 sm:h-8 px-4 shrink-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition text-xs font-semibold"
         >
           Send
         </button>
