@@ -49,7 +49,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           <div className="absolute inset-0 bg-black/70" onClick={handleCancel} />
           <div className="relative z-10 w-full max-w-sm mx-4 glass rounded-xl">
             <div className="p-6">
-              <h2 className="text-lg font-semibold text-white">{options.title}</h2>
+              <h2 className="text-lg font-semibold text-foreground">{options.title}</h2>
               <p className="mt-2 text-sm text-zinc-400">{options.message}</p>
             </div>
             <div className="flex justify-end gap-3 p-4 pt-0">

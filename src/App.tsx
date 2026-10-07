@@ -8,6 +8,7 @@ import { Chat } from "./components/Chat";
 import { generateUUID, errorMessage } from "./lib/utils";
 import { useToast } from "./components/Toast";
 import { useConfirm } from "./components/Confirm";
+import { Chair } from "./components/Chair";
 
 type GameInfo = {
   id: Id<"games">;
@@ -228,7 +229,7 @@ function App() {
                 <span className="game-status min-w-0 truncate text-lg font-semibold tracking-tight">{status}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="hidden min-[400px]:inline font-mono text-xs text-zinc-500 tracking-wider">{gameState.roomId}</span>
-                  <button onClick={handleLeave} className="-mr-1 px-3 h-full text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+                  <button onClick={handleLeave} className="-mr-1 px-3 h-full text-sm font-medium text-zinc-400 hover:text-foreground transition-colors">
                     {leaveButtonText}
                   </button>
                 </div>
@@ -236,8 +237,8 @@ function App() {
 
               {/* Top player */}
               <div className="player-bar">
-                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isTopActive ? "bg-white ring-white/40" : "bg-zinc-700 ring-transparent"}`} />
-                <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isTopActive ? "text-white" : "text-zinc-500"}`}>
+                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isTopActive ? "bg-foreground ring-foreground/40" : "bg-zinc-700 ring-transparent"}`} />
+                <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isTopActive ? "text-foreground" : "text-zinc-500"}`}>
                   {topName || "Empty seat"}
                 </span>
                 {gameState.isCheck && isTopActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
@@ -247,8 +248,8 @@ function App() {
 
               {/* Bottom player */}
               <div className="player-bar">
-                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isBottomActive ? "bg-white ring-white/40" : "bg-zinc-700 ring-transparent"}`} />
-                <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isBottomActive ? "text-white" : "text-zinc-500"}`}>
+                <div className={`w-2 h-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-zinc-900 ${isBottomActive ? "bg-foreground ring-foreground/40" : "bg-zinc-700 ring-transparent"}`} />
+                <span className={`min-w-0 truncate text-sm font-medium transition-colors ${isBottomActive ? "text-foreground" : "text-zinc-500"}`}>
                   {bottomName}{!isSpectator && " (you)"}
                 </span>
                 {gameState.isCheck && isBottomActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
@@ -268,7 +269,7 @@ function App() {
     return (
       <Layout>
         <div className="flex-1 p-8 md:p-16 flex flex-col items-center justify-center gap-4">
-          <div className="w-8 h-8 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-zinc-700 border-t-foreground rounded-full animate-spin" />
           <p className="text-zinc-500 text-sm">Pulling up a chair...</p>
         </div>
       </Layout>
@@ -282,9 +283,9 @@ function App() {
       <div className="home-inner">
         {/* Hero */}
         <div className="home-hero space-y-3">
-          <p className="text-sm font-semibold tracking-tight">Goofygen Chess</p>
-          <h1 className="hero-word">Play.</h1>
-          <p className="text-zinc-500 text-base md:text-lg">Street chess, online. Loser dances.</p>
+          <Chair />
+          <h1 className="hero-word">Pull up a chair.</h1>
+          <p className="home-line">Loser dances. Nobody sits for free.</p>
         </div>
 
         {/* Name input */}
@@ -311,7 +312,7 @@ function App() {
             </button>
           )}
           <button onClick={() => handleJoin()} disabled={!!activeGame} className="btn btn-secondary w-full">
-            Quick match
+            Find a victim
           </button>
         </div>
 
@@ -338,7 +339,7 @@ function App() {
 
         {/* Stats */}
         <p className="home-stats">
-          {onlineCount} in the lobby, {playersCount} at a board
+          {onlineCount} watching, {playersCount} at a board
         </p>
       </div>
       </div>

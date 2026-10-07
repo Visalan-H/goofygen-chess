@@ -1,29 +1,29 @@
 @import "tailwindcss";
 
-/* Charcoal theme: true greys with no tint. Color appears only when something is wrong. */
+/* Light grey room, black ink. One surface for the lobby and the game. */
 @theme {
-  --radius: 0.5rem;
-  --color-background: #141414;
-  --color-foreground: #ececec;
-  --color-card: #1f1f1f;
-  --color-primary: #ececec;
-  --color-primary-foreground: #1f1f1f;
-  --color-secondary: #2a2a2a;
-  --color-secondary-foreground: #ececec;
-  --color-muted-foreground: #8c8c8c;
-  --color-destructive: #e5484d;
-  --color-border: #333333;
-  --color-input: #3b3b3b;
-  --color-ring: #ececec;
-  --color-zinc-950: #141414;
-  --color-zinc-900: #1f1f1f;
-  --color-zinc-800: #2a2a2a;
-  --color-zinc-700: #3b3b3b;
-  --color-zinc-600: #5c5c5c;
-  --color-zinc-500: #8c8c8c;
-  --color-zinc-400: #a8a8a8;
-  --color-zinc-300: #cfcfcf;
-  --color-zinc-200: #e4e4e4;
+  --radius: 0.75rem;
+  --color-background: #b9b9b6;
+  --color-foreground: #141414;
+  --color-card: #d4d4d1;
+  --color-primary: #141414;
+  --color-primary-foreground: #f1f1ef;
+  --color-secondary: #e6e6e3;
+  --color-secondary-foreground: #141414;
+  --color-muted-foreground: #5f5f5a;
+  --color-destructive: #d23a3f;
+  --color-border: #b3b3af;
+  --color-input: #a5a5a0;
+  --color-ring: #141414;
+  --color-zinc-950: #e6e6e3;
+  --color-zinc-900: #d4d4d1;
+  --color-zinc-800: #c9c9c5;
+  --color-zinc-700: #bcbcb7;
+  --color-zinc-600: #8f8f8a;
+  --color-zinc-500: #5f5f5a;
+  --color-zinc-400: #4a4a46;
+  --color-zinc-300: #2f2f2c;
+  --color-zinc-200: #1f1f1d;
 }
 
 .glass {
@@ -53,7 +53,7 @@ body {
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: 999px;
   font-size: 0.9375rem;
   font-weight: 550;
   height: 2.5rem;
@@ -81,13 +81,13 @@ body {
 }
 
 .btn-primary:not(:disabled):hover {
-  background: #ffffff;
+  background: #2e2e2b;
 }
 
 .btn-secondary {
   background: transparent;
   color: var(--color-foreground);
-  border-color: var(--color-input);
+  border: 1.5px solid var(--color-foreground);
 }
 
 .btn-secondary:not(:disabled):hover {
@@ -115,10 +115,10 @@ body {
 .input {
   display: flex;
   height: 2.5rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-input);
-  background: transparent;
-  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 0;
+  background: var(--color-secondary);
+  padding: 0 1.25rem;
   font-size: 0.9375rem;
   color: var(--color-foreground);
   transition: border-color 150ms;
@@ -134,7 +134,7 @@ body {
 }
 
 cg-board {
-  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8"><rect fill="%23cdcdcd" width="8" height="8"/><g fill="%236e6e6e"><rect width="1" height="1" x="1"/><rect width="1" height="1" x="3"/><rect width="1" height="1" x="5"/><rect width="1" height="1" x="7"/><rect width="1" height="1" y="1"/><rect width="1" height="1" x="2" y="1"/><rect width="1" height="1" x="4" y="1"/><rect width="1" height="1" x="6" y="1"/><rect width="1" height="1" x="1" y="2"/><rect width="1" height="1" x="3" y="2"/><rect width="1" height="1" x="5" y="2"/><rect width="1" height="1" x="7" y="2"/><rect width="1" height="1" y="3"/><rect width="1" height="1" x="2" y="3"/><rect width="1" height="1" x="4" y="3"/><rect width="1" height="1" x="6" y="3"/><rect width="1" height="1" x="1" y="4"/><rect width="1" height="1" x="3" y="4"/><rect width="1" height="1" x="5" y="4"/><rect width="1" height="1" x="7" y="4"/><rect width="1" height="1" y="5"/><rect width="1" height="1" x="2" y="5"/><rect width="1" height="1" x="4" y="5"/><rect width="1" height="1" x="6" y="5"/><rect width="1" height="1" x="1" y="6"/><rect width="1" height="1" x="3" y="6"/><rect width="1" height="1" x="5" y="6"/><rect width="1" height="1" x="7" y="6"/><rect width="1" height="1" y="7"/><rect width="1" height="1" x="2" y="7"/><rect width="1" height="1" x="4" y="7"/><rect width="1" height="1" x="6" y="7"/></g></svg>');
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8"><rect fill="%23ecece9" width="8" height="8"/><g fill="%237d7d78"><rect width="1" height="1" x="1"/><rect width="1" height="1" x="3"/><rect width="1" height="1" x="5"/><rect width="1" height="1" x="7"/><rect width="1" height="1" y="1"/><rect width="1" height="1" x="2" y="1"/><rect width="1" height="1" x="4" y="1"/><rect width="1" height="1" x="6" y="1"/><rect width="1" height="1" x="1" y="2"/><rect width="1" height="1" x="3" y="2"/><rect width="1" height="1" x="5" y="2"/><rect width="1" height="1" x="7" y="2"/><rect width="1" height="1" y="3"/><rect width="1" height="1" x="2" y="3"/><rect width="1" height="1" x="4" y="3"/><rect width="1" height="1" x="6" y="3"/><rect width="1" height="1" x="1" y="4"/><rect width="1" height="1" x="3" y="4"/><rect width="1" height="1" x="5" y="4"/><rect width="1" height="1" x="7" y="4"/><rect width="1" height="1" y="5"/><rect width="1" height="1" x="2" y="5"/><rect width="1" height="1" x="4" y="5"/><rect width="1" height="1" x="6" y="5"/><rect width="1" height="1" x="1" y="6"/><rect width="1" height="1" x="3" y="6"/><rect width="1" height="1" x="5" y="6"/><rect width="1" height="1" x="7" y="6"/><rect width="1" height="1" y="7"/><rect width="1" height="1" x="2" y="7"/><rect width="1" height="1" x="4" y="7"/><rect width="1" height="1" x="6" y="7"/></g></svg>');
 }
 
 .cg-wrap coords {
@@ -146,11 +146,11 @@ cg-board {
 /* The last move gets a white ring so it reads on both square colors */
 cg-board square.last-move {
   background-color: transparent !important;
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 0 0 3px rgba(20, 20, 20, 0.55);
 }
 
 cg-board square.selected {
-  background-color: rgba(255, 255, 255, 0.4) !important;
+  background-color: rgba(20, 20, 20, 0.22) !important;
 }
 
 cg-board square.move-dest {
@@ -271,15 +271,32 @@ body {
 }
 
 .home-hero {
-  margin-bottom: auto;
   padding-top: 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: auto;
+}
+
+.home-chair {
+  width: clamp(6rem, 26vw, 9rem);
+  margin-top: 0.5rem;
+}
+
+.home-line {
+  color: var(--color-muted-foreground);
+  font-size: 1rem;
 }
 
 .hero-word {
-  font-weight: 600;
-  line-height: 0.9;
-  letter-spacing: -0.06em;
-  font-size: clamp(6rem, 36vw, 10rem);
+  font-family: "DM Serif Display", Georgia, serif;
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-size: clamp(2.75rem, 13vw, 4rem);
+  text-wrap: balance;
 }
 
 .home-actions {
@@ -294,6 +311,7 @@ body {
 }
 
 .home-stats {
+  text-align: center;
   font-size: 0.875rem;
   color: var(--color-muted-foreground);
 }
@@ -316,6 +334,7 @@ body {
   }
 
   .home-inner > .home-hero {
+    text-align: left;
     grid-column: 1;
     grid-row: 1 / span 5;
     margin: 0;
@@ -329,12 +348,27 @@ body {
   }
 
   .home-stats {
+    text-align: left;
     font-size: 1rem;
   }
 
   .hero-word {
-    font-size: clamp(8rem, 15vw, 17rem);
+    font-size: clamp(4rem, 8vw, 8rem);
   }
+
+  .home-chair {
+    width: clamp(8rem, 12vw, 12rem);
+  }
+
+  .home-hero {
+    align-items: flex-start;
+    margin-bottom: 0;
+  }
+
+  .home-line {
+    font-size: 1.25rem;
+  }
+
 
   .home-hero p:last-child {
     font-size: 1.25rem;
@@ -486,6 +520,15 @@ body {
   }
 
   .hero-word {
-    font-size: clamp(3rem, 22vh, 5rem);
+    font-size: clamp(2rem, 14vh, 3.5rem);
   }
+
+  .home-chair {
+    width: clamp(4rem, 30vh, 7rem);
+  }
+
+  .home-hero {
+    margin-bottom: 0;
+  }
+
 }
