@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
+import { Presence } from "./components/Presence";
 import { Layout } from "./components/Layout";
 import { Board } from "./components/Board";
 import { Chat } from "./components/Chat";
@@ -70,18 +71,29 @@ function App() {
     return () => clearTimeout(timer);
   }, [name, displayName, token, register]);
 
-  // Heartbeat keeps the user marked online
+  // Heartbeat keeps the user marked online, faster during a game so the opponent sees drops quickly
+  const inGame = currentGame !== null;
   useEffect(() => {
     const interval = setInterval(() => {
       register({ name: displayNameRef.current, token }).catch(() => {});
-    }, 60000);
+    }, inGame ? 20000 : 60000);
     const handleUnload = () => void setOffline({ token });
+    // Phones throttle timers in background tabs, so check in the moment the player is back
+    const checkIn = () => {
+      if (document.visibilityState === "visible") {
+        register({ name: displayNameRef.current, token }).catch(() => {});
+      }
+    };
     window.addEventListener("beforeunload", handleUnload);
+    document.addEventListener("visibilitychange", checkIn);
+    window.addEventListener("online", checkIn);
     return () => {
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleUnload);
+      document.removeEventListener("visibilitychange", checkIn);
+      window.removeEventListener("online", checkIn);
     };
-  }, [token, register, setOffline]);
+  }, [token, register, setOffline, inGame]);
 
   const gameStateRef = useRef(gameState);
   const currentGameRef = useRef(currentGame);
@@ -195,6 +207,12 @@ function App() {
     const isTopActive = gameState.turn === topColor && gameState.status === "in-progress";
     const isBottomActive = gameState.turn === bottomColor && gameState.status === "in-progress";
     const isInProgress = gameState.status === "in-progress";
+    // Presence only matters while a game is on and the other seat is filled
+    const showPresence = isInProgress;
+    const topSeen = topColor === "w" ? gameState.whiteSeen : gameState.blackSeen;
+    const topOnline = topColor === "w" ? gameState.whiteOnline : gameState.blackOnline;
+    const bottomSeen = bottomColor === "w" ? gameState.whiteSeen : gameState.blackSeen;
+    const bottomOnline = bottomColor === "w" ? gameState.whiteOnline : gameState.blackOnline;
     const leaveButtonText = isInProgress && !isSpectator ? "Resign" : "Leave";
 
     let status = "";
@@ -228,8 +246,8 @@ function App() {
               <div className="game-head flex items-center justify-between gap-3 px-1">
                 <span className="game-status min-w-0 truncate text-lg font-semibold tracking-tight">{status}</span>
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className="hidden min-[400px]:inline font-mono text-xs text-zinc-500 tracking-wider">{gameState.roomId}</span>
-                  <button onClick={handleLeave} className="-mr-1 px-3 h-full text-sm font-medium text-zinc-400 hover:text-foreground transition-colors">
+                  <span className="font-mono text-xs text-zinc-500 tracking-wider">{gameState.roomId}</span>
+                  <button onClick={handleLeave} className="-mr-1 -my-2 px-3 h-10 text-sm font-medium text-zinc-400 hover:text-foreground transition-colors">
                     {leaveButtonText}
                   </button>
                 </div>
@@ -242,6 +260,9 @@ function App() {
                   {topName || "Empty seat"}
                 </span>
                 {gameState.isCheck && isTopActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
+                {showPresence && topSeen !== undefined && (
+                  <Presence lastSeen={topSeen} online={topOnline} serverNow={gameState.serverNow} canResign={!isSpectator} />
+                )}
               </div>
 
               <Board fen={gameState.fen} color={currentGame.color} isMyTurn={isMyTurn} onMove={handleMove} />
@@ -253,6 +274,9 @@ function App() {
                   {bottomName}{!isSpectator && " (you)"}
                 </span>
                 {gameState.isCheck && isBottomActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
+                {showPresence && isSpectator && bottomSeen !== undefined && (
+                  <Presence lastSeen={bottomSeen} online={bottomOnline} serverNow={gameState.serverNow} canResign={false} />
+                )}
               </div>
             </div>
           </div>

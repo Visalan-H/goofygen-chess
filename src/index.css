@@ -143,6 +143,18 @@ cg-board {
   font-weight: 600;
 }
 
+/* chessground offsets files by 24px for its own layout; ours sits inside the board */
+.game-board.cg-wrap coords.files {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 14px;
+}
+
+.game-board.cg-wrap coords.ranks {
+  top: 0;
+}
+
 /* The last move gets a white ring so it reads on both square colors */
 cg-board square.last-move {
   background-color: transparent !important;
@@ -219,19 +231,21 @@ body {
 }
 
 .board-col {
-  flex: none;
+  flex: 1;
+  min-height: 0;
   container-type: inline-size;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   padding: 0.5rem;
 }
 
-/* header 2rem + two bars 2.25rem + gaps 0.375rem x3, rounded up to leave the chat room */
+/* header 2rem + two bars 2.25rem + gaps 0.375rem x3 + chat bar 3rem, rounded up */
 .game-stack {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  width: min(100%, 560px, calc(100dvh - 17rem));
+  width: min(100%, 560px, calc(100dvh - 12rem));
 }
 
 .game-board {
@@ -250,9 +264,104 @@ body {
   padding: 0 0.25rem;
 }
 
+/* Chat is a drawer on phones: a one-line bar under the board that slides up over it */
 .chat-panel {
+  flex: none;
+  min-height: 0;
+  margin-top: auto;
+}
+
+.chat-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: none;
+  width: 100%;
+  height: 3rem;
+  padding: 0 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-bar:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: -2px;
+}
+
+.chat-preview {
   flex: 1;
-  min-height: 8rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-muted-foreground);
+  font-size: 0.875rem;
+}
+
+.chat-badge {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--color-foreground);
+  color: var(--color-background);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chat-title,
+.chat-body {
+  display: none;
+}
+
+.chat-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: rgba(20, 20, 20, 0.35);
+  animation: chat-fade 0.2s ease-out;
+}
+
+.chat-open {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 40rem;
+  height: min(70dvh, 560px);
+  z-index: 30;
+  border-radius: 1.25rem 1.25rem 0 0 !important;
+  border-top: 1px solid var(--color-border) !important;
+  background: var(--color-card);
+  box-shadow: 0 -12px 40px rgba(20, 20, 20, 0.25);
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: chat-slide 0.22s ease-out;
+}
+
+.chat-open .chat-body {
+  display: flex;
+}
+
+.chat-open .chat-bar {
+  border-bottom: 1px solid var(--color-border);
+}
+
+@keyframes chat-slide {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes chat-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 /* Lobby, phones and tablets: the word on top, the controls pinned to the thumb */
@@ -271,17 +380,17 @@ body {
 }
 
 .home-hero {
-  padding-top: 0.5rem;
+  padding: 0.5rem 0;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: auto;
+  margin-block: auto;
 }
 
 .home-chair {
-  width: clamp(6rem, 26vw, 9rem);
+  width: clamp(7rem, 32vw, 10rem);
   margin-top: 0.5rem;
 }
 
@@ -441,10 +550,33 @@ body {
     grid-column: 2;
     grid-row: 4;
     flex: 1;
+    margin-top: 0;
     min-height: 0;
     border: 1px solid var(--color-border);
     border-radius: 0.75rem;
     overflow: hidden;
+  }
+
+  .chat-bar,
+  .chat-scrim {
+    display: none;
+  }
+
+  .chat-title {
+    display: block;
+  }
+
+  .chat-body {
+    display: flex;
+  }
+
+  .chat-open {
+    position: static;
+    height: auto;
+    max-width: none;
+    box-shadow: none;
+    padding-bottom: 0;
+    animation: none;
   }
 }
 
@@ -485,8 +617,31 @@ body {
     flex: none;
     width: 15rem;
     min-height: 0;
+    margin-top: 0;
     border-top: 0;
     border-left: 1px solid var(--color-border);
+  }
+
+  .chat-bar,
+  .chat-scrim {
+    display: none;
+  }
+
+  .chat-title {
+    display: block;
+  }
+
+  .chat-body {
+    display: flex;
+  }
+
+  .chat-open {
+    position: static;
+    height: auto;
+    max-width: none;
+    box-shadow: none;
+    padding-bottom: 0;
+    animation: none;
   }
 
   /* Use the full screen: no outer padding or rounded frame */

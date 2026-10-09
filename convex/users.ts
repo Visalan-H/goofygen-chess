@@ -3,7 +3,7 @@ import { internal } from "./_generated/api";
 import { ConvexError, v } from "convex/values";
 import { getUserByToken, MAX_NAME_LENGTH } from "./lib/helpers";
 
-const STALE_AFTER_MS = 3 * 60 * 1000; // the client heartbeats every 60s
+const STALE_AFTER_MS = 3 * 60 * 1000; // the client heartbeats every 20s
 const BATCH = 100;
 
 // Registers the guest. The client also calls it as the heartbeat.
