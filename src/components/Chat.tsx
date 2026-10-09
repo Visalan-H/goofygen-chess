@@ -16,16 +16,42 @@ export function Chat({ gameId, userToken }: ChatProps) {
   const { toast } = useToast();
   const [text, setText] = useState("");
   const [panel, setPanel] = useState<"quick" | "gif" | null>(null);
+  // Phones show chat as a drawer: a one-line bar that slides up into a sheet
+  const [open, setOpen] = useState(false);
+  const [seen, setSeen] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const sendMessage = useMutation(api.messages.send);
-  const messages = useQuery(api.messages.list, { gameId }) ?? [];
+  const list = useQuery(api.messages.list, { gameId });
+  const messages = list ?? [];
 
   useEffect(() => {
     if (messages.length > 0 && scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages.length]);
+  }, [messages.length, open]);
+
+  // Messages that were already there when the game loaded are not unread
+  useEffect(() => {
+    if (list !== undefined && seen === null) setSeen(list.length);
+  }, [list, seen]);
+
+  useEffect(() => {
+    if (open) setSeen(messages.length);
+  }, [open, messages.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const last = messages[messages.length - 1];
+  const preview = last ? (last.text ? `${last.sender}: ${last.text}` : `${last.sender} sent a GIF`) : "No messages yet";
+  const unread = open || seen === null ? 0 : Math.max(0, messages.length - seen);
 
   const handleSend = async () => {
     const msg = text.trim();
@@ -58,11 +84,20 @@ export function Chat({ gameId, userToken }: ChatProps) {
   };
 
   return (
-    <div className="chat-panel relative flex flex-col glass min-h-0 rounded-none border-x-0 border-b-0">
-      <div className="px-4 py-2.5 shrink-0 border-b border-border text-sm text-zinc-300 font-semibold">
+    <>
+    {open && <div className="chat-scrim" aria-hidden="true" onClick={() => setOpen(false)} />}
+    <div className={`chat-panel relative flex flex-col glass min-h-0 rounded-none border-x-0 border-b-0 ${open ? "chat-open" : ""}`}>
+      <button type="button" className="chat-bar" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="text-sm font-semibold">Chat</span>
+        <span className="chat-preview">{open ? "" : preview}</span>
+        {unread > 0 && <span className="chat-badge">{unread}</span>}
+        {open && <span className="text-sm text-zinc-400">Close</span>}
+      </button>
+      <div className="chat-title px-4 py-2.5 shrink-0 border-b border-border text-sm text-zinc-300 font-semibold">
         Chat
       </div>
 
+      <div className="chat-body flex-col flex-1 min-h-0">
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-zinc-500 text-sm text-center mt-8">Quiet crowd. Say something.</p>
@@ -80,7 +115,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
 
       <div className="relative p-2 sm:p-3 shrink-0 border-t border-border flex gap-2">
         {panel && (
-          <div className="absolute inset-x-0 bottom-full z-20 flex flex-col max-h-[40dvh] h-28 sm:h-40 border-t border-border bg-zinc-900">
+          <div className="absolute inset-x-0 bottom-full z-20 flex flex-col max-h-[40dvh] h-40 border-t border-border bg-zinc-900">
             <div className="flex gap-1 p-2 pb-0 shrink-0">
               {(["quick", "gif"] as const).map((tab) => (
                 <button
@@ -127,7 +162,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
           aria-label="Quick chat and GIFs"
           aria-expanded={panel !== null}
           onClick={() => setPanel(panel ? null : "quick")}
-          className="w-10 h-10 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-full bg-secondary hover:bg-zinc-700 text-zinc-300 hover:text-foreground transition text-lg font-medium"
+          className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-secondary hover:bg-zinc-700 text-zinc-300 hover:text-foreground transition text-lg font-medium"
         >
           +
         </button>
@@ -145,11 +180,13 @@ export function Chat({ gameId, userToken }: ChatProps) {
           type="button"
           aria-label="Send message"
           onClick={() => void handleSend()}
-          className="h-10 sm:h-8 px-4 shrink-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition text-xs font-semibold"
+          className="h-10 px-4 shrink-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition text-xs font-semibold"
         >
           Send
         </button>
       </div>
+      </div>
     </div>
+    </>
   );
 }

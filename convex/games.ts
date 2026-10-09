@@ -101,6 +101,12 @@ export const getGame = query({
       blackName: v.string(),
       isGameOver: v.boolean(),
       isCheck: v.boolean(),
+      // Presence: the heartbeat time and flag of each seat, plus the server clock to compare against
+      whiteSeen: v.number(),
+      blackSeen: v.optional(v.number()),
+      whiteOnline: v.boolean(),
+      blackOnline: v.boolean(),
+      serverNow: v.number(),
     }),
     v.null(),
   ),
@@ -132,6 +138,11 @@ export const getGame = query({
       blackName: black?.name ?? "Waiting...",
       isGameOver: chess.isGameOver(),
       isCheck: chess.isCheck(),
+      whiteSeen: white?.lastSeen ?? 0,
+      blackSeen: black?.lastSeen,
+      whiteOnline: white?.isOnline ?? false,
+      blackOnline: black?.isOnline ?? false,
+      serverNow: Date.now(),
     };
   },
 });

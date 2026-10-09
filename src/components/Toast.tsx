@@ -6,12 +6,13 @@ type ToastType = "info" | "success" | "error";
 export function Toaster() {
   return <SonnerToaster
       position="top-center"
-      theme="dark"
+      offset={24}
+      mobileOffset={{ top: 56, left: 16, right: 16 }}
       toastOptions={{
         unstyled: true,
         classNames: {
           toast: "flex w-full items-center gap-3 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background shadow-lg",
-          error: "!bg-destructive !text-white",
+          error: "!bg-destructive !text-primary-foreground",
         },
       }}
     />;
