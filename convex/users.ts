@@ -61,24 +61,6 @@ export const markStaleOffline = internalMutation({
   },
 });
 
-// One-off: gives users who were online before the presence table existed a presence row,
-// so the stale cron can sweep the ones who never come back. Remove after running on each deployment.
-export const migrateToPresence = internalMutation({
-  args: {},
-  returns: v.number(),
-  handler: async (ctx) => {
-    const online = await ctx.db.query("users").withIndex("by_online", (q) => q.eq("isOnline", true)).take(1000);
-    let added = 0;
-    for (const user of online) {
-      const live = await ctx.db.query("presence").withIndex("by_user", (q) => q.eq("userId", user._id)).first();
-      if (live) continue;
-      await ctx.db.insert("presence", { userId: user._id, lastSeen: user.lastSeen });
-      added++;
-    }
-    return added;
-  },
-});
-
 export const getStats = query({
   args: {},
   returns: v.object({ browsing: v.number(), playing: v.number() }),
