@@ -6,7 +6,9 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ToastProvider } from "./components/Toast";
 import { ConfirmProvider } from "./components/Confirm";
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+// No "Leave site?" prompt: the stuck-connection reload in App runs while a check-in is in flight,
+// and a lost heartbeat or move is safe to drop since the game state lives on the server.
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string, { unsavedChangesWarning: false });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
