@@ -31,14 +31,8 @@ export function Chat({ gameId, userToken }: ChatProps) {
     }
   }, [messages.length, open]);
 
-  // Messages that were already there when the game loaded are not unread
-  useEffect(() => {
-    if (list !== undefined && seen === null) setSeen(list.length);
-  }, [list, seen]);
-
-  useEffect(() => {
-    if (open) setSeen(messages.length);
-  }, [open, messages.length]);
+  // Messages that were already there when the game loaded are not unread, and an open drawer has read everything
+  if (list !== undefined && (seen === null || (open && seen !== list.length))) setSeen(list.length);
 
   useEffect(() => {
     if (!open) return;
@@ -144,7 +138,7 @@ export function Chat({ gameId, userToken }: ChatProps) {
             ) : (
               <div className="flex-1 min-h-0 overflow-y-auto p-2 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-1 content-start">
                 {goofyGifs.map((g) => (
-                  <button key={g.id} type="button" onClick={() => handleGif(g.url)} className="p-0 border-0 bg-transparent">
+                  <button key={g.id} type="button" onClick={() => void handleGif(g.url)} className="p-0 border-0 bg-transparent">
                     <img
                       src={g.thumb}
                       alt={g.keywords.join(", ")}

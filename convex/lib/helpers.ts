@@ -23,6 +23,22 @@ export async function requireGame(ctx: MutationCtx, gameId: Id<"games">) {
   return game;
 }
 
+// Live heartbeat time while online, the time of the last heartbeat once offline.
+export async function getSeatPresence(ctx: Ctx, userId: Id<"users">) {
+  const live = await ctx.db.query("presence").withIndex("by_user", (q) => q.eq("userId", userId)).first();
+  if (live) return { lastSeen: live.lastSeen, online: true };
+  const user = await ctx.db.get("users", userId);
+  return { lastSeen: user?.lastSeen ?? 0, online: false };
+}
+
+// Marks the user offline and drops the live presence row.
+export async function goOffline(ctx: MutationCtx, userId: Id<"users">, lastSeen?: number) {
+  const live = await ctx.db.query("presence").withIndex("by_user", (q) => q.eq("userId", userId)).first();
+  if (live) await ctx.db.delete("presence", live._id);
+  const user = await ctx.db.get("users", userId);
+  if (user) await ctx.db.patch("users", userId, { isOnline: false, lastSeen: lastSeen ?? live?.lastSeen ?? Date.now() });
+}
+
 // Finds the user's waiting or in-progress game through the player indexes.
 export async function findActiveGame(ctx: Ctx, userId: Id<"users">) {
   for (const status of ["waiting", "in-progress"] as const) {

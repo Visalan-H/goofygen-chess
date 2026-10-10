@@ -67,9 +67,9 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
     const chess = new Chess(fen);
     const dests = new Map<Key, Key[]>();
     for (const m of chess.moves({ verbose: true })) {
-      const list = dests.get(m.from as Key);
-      if (list) list.push(m.to as Key);
-      else dests.set(m.from as Key, [m.to as Key]);
+      const list = dests.get(m.from);
+      if (list) list.push(m.to);
+      else dests.set(m.from, [m.to]);
     }
 
     const side = color === "b" ? "black" : "white";
