@@ -13,20 +13,20 @@ function span(ms: number) {
 }
 
 type PresenceProps = {
+  // The server's heartbeat stamp. Only its changes matter, never its value.
   lastSeen: number;
   online: boolean;
-  // Server time when the numbers were read
-  serverNow: number;
   canResign: boolean;
 };
 
-// Every fresh reading from the server remounts the body, which restarts its clock
+// Each new heartbeat stamp remounts the body, which restarts its clock
 export function Presence(props: PresenceProps) {
-  return <PresenceBody key={props.serverNow} {...props} />;
+  return <PresenceBody key={props.lastSeen} {...props} />;
 }
 
-function PresenceBody({ lastSeen, online, serverNow, canResign }: PresenceProps) {
-  // Counts up from the server reading, so the phone clock never enters the math
+function PresenceBody({ online, canResign }: PresenceProps) {
+  // Counts up from when this client saw the stamp, so no clock is compared across machines
+  // and the query needs no Date.now().
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ function PresenceBody({ lastSeen, online, serverNow, canResign }: PresenceProps)
     return () => clearInterval(timer);
   }, []);
 
-  const age = serverNow - lastSeen + elapsed;
+  const age = elapsed;
   const gone = !online || age > GONE_AFTER_MS;
 
   if (!gone) {
