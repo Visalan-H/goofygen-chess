@@ -4,13 +4,14 @@ import { ConvexError, v } from "convex/values";
 import { Chess } from "chess.js";
 import { Doc } from "./_generated/dataModel";
 import { generateRoomCode } from "./utils";
-import { requireUser, requireGame, findActiveGame, getUserByToken, deleteGameWithMessages } from "./lib/helpers";
+import { requireUser, requireGame, findActiveGame, getUserByToken, getSeatPresence, deleteGameWithMessages } from "./lib/helpers";
 import { gameStatus, gameWinner, playerColor, seatColor } from "./lib/validators";
 
 const WAITING_TTL_MS = 30 * 60 * 1000;
 const IDLE_TTL_MS = 2 * 60 * 60 * 1000;
 const FINISHED_TTL_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_BATCH = 100;
+const HOST_FRESH_MS = 60 * 1000; // a waiting host heartbeats every 20s
 
 const seat = v.object({ gameId: v.id("games"), roomId: v.string(), color: seatColor });
 
@@ -53,15 +54,17 @@ export const join = mutation({
       game = await ctx.db.query("games").withIndex("by_room_code", (q) => q.eq("roomId", code)).first();
       if (!game) throw new ConvexError("Room not found");
     } else {
-      // Quick match: oldest waiting game whose host is still online
+      // Quick match: oldest waiting game whose host checked in recently. isOnline alone lags up to
+      // 3 minutes behind a host who closed the tab, which would seat the joiner across from nobody.
       const waiting = await ctx.db
         .query("games")
         .withIndex("by_status", (q) => q.eq("status", "waiting"))
         .take(20);
+      const cutoff = Date.now() - HOST_FRESH_MS;
       for (const candidate of waiting) {
         if (candidate.playerWhite === user._id) continue;
-        const host = await ctx.db.get("users", candidate.playerWhite);
-        if (host?.isOnline) {
+        const host = await getSeatPresence(ctx, candidate.playerWhite);
+        if (host.online && host.lastSeen > cutoff) {
           game = candidate;
           break;
         }
@@ -101,12 +104,6 @@ export const getGame = query({
       blackName: v.string(),
       isGameOver: v.boolean(),
       isCheck: v.boolean(),
-      // Presence: the heartbeat time and flag of each seat, plus the server clock to compare against
-      whiteSeen: v.number(),
-      blackSeen: v.optional(v.number()),
-      whiteOnline: v.boolean(),
-      blackOnline: v.boolean(),
-      serverNow: v.number(),
     }),
     v.null(),
   ),
@@ -138,10 +135,34 @@ export const getGame = query({
       blackName: black?.name ?? "Waiting...",
       isGameOver: chess.isGameOver(),
       isCheck: chess.isCheck(),
-      whiteSeen: white?.lastSeen ?? 0,
+    };
+  },
+});
+
+// Heartbeat state of both seats. Apart from getGame so a heartbeat re-runs only this small query.
+export const getPresence = query({
+  args: { gameId: v.id("games") },
+  returns: v.union(
+    v.object({
+      whiteSeen: v.number(),
+      blackSeen: v.optional(v.number()),
+      whiteOnline: v.boolean(),
+      blackOnline: v.boolean(),
+      // Server time of the reading, so a wrong phone clock does not matter
+      serverNow: v.number(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, { gameId }) => {
+    const game = await ctx.db.get("games", gameId);
+    if (!game) return null;
+    const white = await getSeatPresence(ctx, game.playerWhite);
+    const black = game.playerBlack ? await getSeatPresence(ctx, game.playerBlack) : null;
+    return {
+      whiteSeen: white.lastSeen,
       blackSeen: black?.lastSeen,
-      whiteOnline: white?.isOnline ?? false,
-      blackOnline: black?.isOnline ?? false,
+      whiteOnline: white.online,
+      blackOnline: black?.online ?? false,
       serverNow: Date.now(),
     };
   },

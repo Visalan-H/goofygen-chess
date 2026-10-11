@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
 import { Presence } from "./components/Presence";
@@ -33,6 +33,7 @@ function App() {
   const [name, setName] = useState(() => localStorage.getItem("chess_name") || "");
   const [currentGame, setCurrentGame] = useState<GameInfo | null>(null);
 
+  const convex = useConvex();
   const register = useMutation(api.users.register);
   const setOffline = useMutation(api.users.setOffline);
   const createGame = useMutation(api.games.create);
@@ -48,10 +49,15 @@ function App() {
     api.games.getGame,
     currentGame ? { gameId: currentGame.id } : "skip"
   );
+  const presence = useQuery(
+    api.games.getPresence,
+    currentGame ? { gameId: currentGame.id } : "skip"
+  );
 
   // Auto-rejoin active game on load
   useEffect(() => {
     if (activeGame && !currentGame) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs local state to the server
       setCurrentGame({ id: activeGame.gameId, roomId: activeGame.roomId, color: activeGame.color });
     }
   }, [activeGame, currentGame]);
@@ -71,29 +77,38 @@ function App() {
     return () => clearTimeout(timer);
   }, [name, displayName, token, register]);
 
-  // Heartbeat keeps the user marked online, faster during a game so the opponent sees drops quickly
+  // Heartbeat keeps the user marked online, faster during a game so the opponent sees drops quickly.
+  // A phone that slept can wake with a dead socket the Convex client still thinks is open, and it
+  // takes the client 60s to notice. Updates like an opponent joining never arrive in that window,
+  // so a check-in that hangs on a "connected" socket reloads the page, which rejoins the game.
   const inGame = currentGame !== null;
   useEffect(() => {
-    const interval = setInterval(() => {
-      register({ name: displayNameRef.current, token }).catch(() => {});
-    }, inGame ? 20000 : 60000);
-    const handleUnload = () => void setOffline({ token });
+    const ping = () => {
+      const stuck = setTimeout(() => {
+        const visible = document.visibilityState === "visible";
+        if (visible && navigator.onLine && convex.connectionState().isWebSocketConnected) window.location.reload();
+      }, 10000);
+      register({ name: displayNameRef.current, token })
+        .catch(() => {})
+        .finally(() => clearTimeout(stuck));
+    };
+    const interval = setInterval(ping, inGame ? 20000 : 60000);
+    // Phones often skip beforeunload when a tab is closed or swiped away, but they fire pagehide
+    const handleUnload = () => void setOffline({ token }).catch(() => {});
     // Phones throttle timers in background tabs, so check in the moment the player is back
     const checkIn = () => {
-      if (document.visibilityState === "visible") {
-        register({ name: displayNameRef.current, token }).catch(() => {});
-      }
+      if (document.visibilityState === "visible") ping();
     };
-    window.addEventListener("beforeunload", handleUnload);
+    window.addEventListener("pagehide", handleUnload);
     document.addEventListener("visibilitychange", checkIn);
     window.addEventListener("online", checkIn);
     return () => {
       clearInterval(interval);
-      window.removeEventListener("beforeunload", handleUnload);
+      window.removeEventListener("pagehide", handleUnload);
       document.removeEventListener("visibilitychange", checkIn);
       window.removeEventListener("online", checkIn);
     };
-  }, [token, register, setOffline, inGame]);
+  }, [token, register, setOffline, inGame, convex]);
 
   const gameStateRef = useRef(gameState);
   const currentGameRef = useRef(currentGame);
@@ -106,9 +121,23 @@ function App() {
   useEffect(() => {
     if (currentGame && gameState === null) {
       toast("That game no longer exists.", "info");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs local state to the server
       setCurrentGame(null);
     }
   }, [currentGame, gameState, toast]);
+
+  // Tell the host the moment a challenger sits down, in case they looked away while waiting
+  const seatStatus = gameState?.status;
+  const challenger = gameState?.blackName;
+  const isHost = currentGame?.color === "w";
+  const prevStatus = useRef(seatStatus);
+  useEffect(() => {
+    if (prevStatus.current === "waiting" && seatStatus === "in-progress" && isHost) {
+      toast(`${challenger} sat down. Your move.`, "success");
+      navigator.vibrate?.(200);
+    }
+    prevStatus.current = seatStatus;
+  }, [seatStatus, challenger, isHost, toast]);
 
   // Announce the result once per game, then return to the lobby after 5 seconds
   const finishedGameId = gameState?.status === "finished" ? currentGame?.id : undefined;
@@ -140,24 +169,36 @@ function App() {
     return () => clearTimeout(timer);
   }, [finishedGameId, toast, leaveGame, token]);
 
+  // A second tap on a slow connection would queue a second create or join, which then fails
+  // with "You already have an active game" after the first one already seated the player
+  const busy = useRef(false);
+
   const handleCreate = async () => {
     if (!name.trim()) return toast("Enter your name first.", "error");
+    if (busy.current) return;
+    busy.current = true;
     try {
       const result = await createGame({ token });
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: "w" });
     } catch (err) {
       toast(errorMessage(err), "error");
+    } finally {
+      busy.current = false;
     }
   };
 
   const handleJoin = async (code?: string) => {
     if (!name.trim()) return toast("Enter your name first.", "error");
+    if (busy.current) return;
+    busy.current = true;
     try {
       const result = await joinGame({ token, roomId: code || undefined });
       if (!result) return toast("No challengers yet. Start a game.", "info");
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: result.color });
     } catch (err) {
       toast(errorMessage(err), "error");
+    } finally {
+      busy.current = false;
     }
   };
 
@@ -209,10 +250,10 @@ function App() {
     const isInProgress = gameState.status === "in-progress";
     // Presence only matters while a game is on and the other seat is filled
     const showPresence = isInProgress;
-    const topSeen = topColor === "w" ? gameState.whiteSeen : gameState.blackSeen;
-    const topOnline = topColor === "w" ? gameState.whiteOnline : gameState.blackOnline;
-    const bottomSeen = bottomColor === "w" ? gameState.whiteSeen : gameState.blackSeen;
-    const bottomOnline = bottomColor === "w" ? gameState.whiteOnline : gameState.blackOnline;
+    const topSeen = topColor === "w" ? presence?.whiteSeen : presence?.blackSeen;
+    const topOnline = topColor === "w" ? presence?.whiteOnline : presence?.blackOnline;
+    const bottomSeen = bottomColor === "w" ? presence?.whiteSeen : presence?.blackSeen;
+    const bottomOnline = bottomColor === "w" ? presence?.whiteOnline : presence?.blackOnline;
     const leaveButtonText = isInProgress && !isSpectator ? "Resign" : "Leave";
 
     let status = "";
@@ -247,7 +288,7 @@ function App() {
                 <span className="game-status min-w-0 truncate text-lg font-semibold tracking-tight">{status}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="font-mono text-xs text-zinc-500 tracking-wider">{gameState.roomId}</span>
-                  <button onClick={handleLeave} className="-mr-1 -my-2 px-3 h-10 text-sm font-medium text-zinc-400 hover:text-foreground transition-colors">
+                  <button onClick={() => void handleLeave()} className="-mr-1 -my-2 px-3 h-10 text-sm font-medium text-zinc-400 hover:text-foreground transition-colors">
                     {leaveButtonText}
                   </button>
                 </div>
@@ -260,8 +301,8 @@ function App() {
                   {topName || "Empty seat"}
                 </span>
                 {gameState.isCheck && isTopActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
-                {showPresence && topSeen !== undefined && (
-                  <Presence lastSeen={topSeen} online={topOnline} serverNow={gameState.serverNow} canResign={!isSpectator} />
+                {showPresence && presence && topSeen !== undefined && (
+                  <Presence lastSeen={topSeen} online={topOnline ?? false} serverNow={presence.serverNow} canResign={!isSpectator} />
                 )}
               </div>
 
@@ -274,8 +315,8 @@ function App() {
                   {bottomName}{!isSpectator && " (you)"}
                 </span>
                 {gameState.isCheck && isBottomActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
-                {showPresence && isSpectator && bottomSeen !== undefined && (
-                  <Presence lastSeen={bottomSeen} online={bottomOnline} serverNow={gameState.serverNow} canResign={false} />
+                {showPresence && presence && isSpectator && bottomSeen !== undefined && (
+                  <Presence lastSeen={bottomSeen} online={bottomOnline ?? false} serverNow={presence.serverNow} canResign={false} />
                 )}
               </div>
             </div>
@@ -331,11 +372,11 @@ function App() {
               Resume game
             </button>
           ) : (
-            <button onClick={handleCreate} className="btn btn-primary w-full">
+            <button onClick={() => void handleCreate()} className="btn btn-primary w-full">
               New game
             </button>
           )}
-          <button onClick={() => handleJoin()} disabled={!!activeGame} className="btn btn-secondary w-full">
+          <button onClick={() => void handleJoin()} disabled={!!activeGame} className="btn btn-secondary w-full">
             Find a victim
           </button>
         </div>
@@ -353,7 +394,7 @@ function App() {
             className="input flex-1 min-w-0 uppercase tracking-widest"
           />
           <button 
-            onClick={() => roomCode.trim() && handleJoin(roomCode)} 
+            onClick={() => roomCode.trim() && void handleJoin(roomCode)} 
             disabled={!!activeGame}
             className="btn btn-secondary shrink-0 px-5 sm:px-6"
           >

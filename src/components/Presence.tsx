@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 // Heartbeats arrive every 20s, but a backgrounded tab may only fire once a minute.
 const GONE_AFTER_MS = 90_000;
 const HINT_AFTER_MS = 120_000;
+const TICK_MS = 5000;
 
 function span(ms: number) {
   const m = Math.floor(ms / 60_000);
@@ -14,25 +15,26 @@ function span(ms: number) {
 type PresenceProps = {
   lastSeen: number;
   online: boolean;
-  // Server time when the numbers were read, so a wrong phone clock does not matter
+  // Server time when the numbers were read
   serverNow: number;
   canResign: boolean;
 };
 
-export function Presence({ lastSeen, online, serverNow, canResign }: PresenceProps) {
-  const [skew, setSkew] = useState(() => serverNow - Date.now());
-  const [, setTick] = useState(0);
+// Every fresh reading from the server remounts the body, which restarts its clock
+export function Presence(props: PresenceProps) {
+  return <PresenceBody key={props.serverNow} {...props} />;
+}
+
+function PresenceBody({ lastSeen, online, serverNow, canResign }: PresenceProps) {
+  // Counts up from the server reading, so the phone clock never enters the math
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    setSkew(serverNow - Date.now());
-  }, [serverNow]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setTick((t) => t + 1), 5000);
+    const timer = setInterval(() => setElapsed((e) => e + TICK_MS), TICK_MS);
     return () => clearInterval(timer);
   }, []);
 
-  const age = Date.now() + skew - lastSeen;
+  const age = serverNow - lastSeen + elapsed;
   const gone = !online || age > GONE_AFTER_MS;
 
   if (!gone) {
