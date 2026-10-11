@@ -27,6 +27,13 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
   const cgRef = useRef<ReturnType<typeof Chessground> | null>(null);
   // A pawn move to the last rank waits here until the player picks a piece
   const [pending, setPending] = useState<{ from: string; to: string } | null>(null);
+  // The position or turn changed under the picker, for example the opponent resigned
+  const positionKey = `${fen}|${isMyTurn}`;
+  const [pendingKey, setPendingKey] = useState(positionKey);
+  if (pendingKey !== positionKey) {
+    setPendingKey(positionKey);
+    setPending(null);
+  }
 
   const fenRef = useRef(fen);
   const isMyTurnRef = useRef(isMyTurn);
