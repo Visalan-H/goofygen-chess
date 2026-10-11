@@ -302,7 +302,7 @@ function App() {
                 </span>
                 {gameState.isCheck && isTopActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
                 {showPresence && presence && topSeen !== undefined && (
-                  <Presence lastSeen={topSeen} online={topOnline ?? false} serverNow={presence.serverNow} canResign={!isSpectator} />
+                  <Presence lastSeen={topSeen} online={topOnline ?? false}canResign={!isSpectator} />
                 )}
               </div>
 
@@ -316,7 +316,7 @@ function App() {
                 </span>
                 {gameState.isCheck && isBottomActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
                 {showPresence && presence && isSpectator && bottomSeen !== undefined && (
-                  <Presence lastSeen={bottomSeen} online={bottomOnline ?? false} serverNow={presence.serverNow} canResign={false} />
+                  <Presence lastSeen={bottomSeen} online={bottomOnline ?? false}canResign={false} />
                 )}
               </div>
             </div>

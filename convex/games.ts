@@ -148,8 +148,6 @@ export const getPresence = query({
       blackSeen: v.optional(v.number()),
       whiteOnline: v.boolean(),
       blackOnline: v.boolean(),
-      // Server time of the reading, so a wrong phone clock does not matter
-      serverNow: v.number(),
     }),
     v.null(),
   ),
@@ -163,7 +161,6 @@ export const getPresence = query({
       blackSeen: black?.lastSeen,
       whiteOnline: white.online,
       blackOnline: black?.online ?? false,
-      serverNow: Date.now(),
     };
   },
 });
