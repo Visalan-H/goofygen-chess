@@ -12,7 +12,7 @@ export default defineSchema({
     isOnline: v.boolean(),
   })
     .index("by_token", ["token"])
-    .index("by_online", ["isOnline"]),
+    .index("by_online", ["isOnline", "lastSeen"]), // stats and pruning
 
   // One row per online user, rewritten by every heartbeat. Deleted when the user goes offline.
   presence: defineTable({

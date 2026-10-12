@@ -62,21 +62,22 @@ function App() {
     }
   }, [activeGame, currentGame]);
 
-  const displayName = name.trim() || "Guest";
-  const displayNameRef = useRef(displayName);
+  // Undefined when the input is blank, so the server keeps the stored name
+  const typedName = name.trim() || undefined;
+  const typedNameRef = useRef(typedName);
   useEffect(() => {
-    displayNameRef.current = displayName;
-  }, [displayName]);
+    typedNameRef.current = typedName;
+  }, [typedName]);
 
   // Register on load and after the user stops typing, not on every keystroke. Create and join
   // register again first, so a tap inside the delay still works.
   useEffect(() => {
     if (name.trim()) localStorage.setItem("chess_name", name);
     const timer = setTimeout(() => {
-      register({ name: displayName, token }).catch(() => {});
+      register({ name: typedName, token }).catch(() => {});
     }, 400);
     return () => clearTimeout(timer);
-  }, [name, displayName, token, register]);
+  }, [name, typedName, token, register]);
 
   // Heartbeat keeps the user marked online, faster during a game so the opponent sees drops quickly.
   // A phone that slept can wake with a dead socket the Convex client still thinks is open, and it
@@ -91,7 +92,7 @@ function App() {
         const typing = document.activeElement instanceof HTMLInputElement && document.activeElement.value !== "";
         if (visible && !typing && navigator.onLine && convex.connectionState().isWebSocketConnected) window.location.reload();
       }, 10000);
-      register({ name: displayNameRef.current, token })
+      register({ name: typedNameRef.current, token })
         .catch(() => {})
         .finally(() => clearTimeout(stuck));
     };
@@ -181,7 +182,7 @@ function App() {
     if (busy.current) return;
     busy.current = true;
     try {
-      await register({ name: displayName, token });
+      await register({ name: typedName, token });
       const result = await createGame({ token });
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: "w" });
     } catch (err) {
@@ -196,7 +197,7 @@ function App() {
     if (busy.current) return;
     busy.current = true;
     try {
-      await register({ name: displayName, token });
+      await register({ name: typedName, token });
       const result = await joinGame({ token, roomId: code || undefined });
       if (!result) return toast("No challengers yet. Start a game.", "info");
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: result.color });
@@ -290,7 +291,7 @@ function App() {
             <div className="game-stack">
               {/* Room code, status, resign or leave */}
               <div className="game-head flex items-center justify-between gap-3 px-1">
-                <span className="game-status min-w-0 truncate text-lg font-semibold tracking-tight">{status}</span>
+                <span aria-live="polite" className="game-status min-w-0 truncate text-lg font-semibold tracking-tight">{status}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="font-mono text-xs text-zinc-500 tracking-wider">{gameState.roomId}</span>
                   <button onClick={() => void handleLeave()} className="-mr-1 -my-2 px-3 h-10 text-sm font-medium text-zinc-400 hover:text-foreground transition-colors">
@@ -362,6 +363,7 @@ function App() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
+          aria-label="Your name"
           placeholder="Your name"
           maxLength={24}
           className="input"
@@ -391,6 +393,7 @@ function App() {
           <input
             value={roomCode}
             onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+            aria-label="Room code"
             placeholder="Room code"
             maxLength={6}
             onKeyDown={(e) => {

@@ -80,7 +80,11 @@ export function Chat({ gameId, userToken }: ChatProps) {
   return (
     <>
     {open && <div className="chat-scrim" aria-hidden="true" onClick={() => setOpen(false)} />}
-    <div className={`chat-panel relative flex flex-col glass min-h-0 rounded-none border-x-0 border-b-0 ${open ? "chat-open" : ""}`}>
+    <div
+      role={open ? "dialog" : undefined}
+      aria-modal={open ? true : undefined}
+      aria-label={open ? "Chat" : undefined}
+      className={`chat-panel relative flex flex-col glass min-h-0 rounded-none border-x-0 border-b-0 ${open ? "chat-open" : ""}`}>
       <button type="button" className="chat-bar" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="text-sm font-semibold">Chat</span>
         <span className="chat-preview">{open ? "" : preview}</span>

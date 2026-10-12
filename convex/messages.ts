@@ -3,6 +3,9 @@ import { ConvexError, v } from "convex/values";
 import { MAX_MESSAGES_PER_GAME, requireGame, requireUser } from "./lib/helpers";
 
 const MAX_TEXT_LENGTH = 200;
+const MAX_PER_USER = 100; // one player cannot use up the whole game's chat
+const BURST_COUNT = 5;
+const BURST_WINDOW_MS = 10_000;
 // One id segment and one file name, so ".." and extra path pieces cannot get through
 const GIPHY_URL = /^https:\/\/media\d*\.giphy\.com\/media\/[\w-]+\/[\w-]+\.(gif|webp)$/;
 
@@ -24,12 +27,19 @@ export const send = mutation({
       .take(MAX_MESSAGES_PER_GAME);
     if (existing.length >= MAX_MESSAGES_PER_GAME) throw new ConvexError("Chat limit reached for this game");
 
+    const now = Date.now();
+    const mine = existing.filter((m) => m.userId === user._id);
+    if (mine.length >= MAX_PER_USER) throw new ConvexError("You have used your share of this game's chat");
+    if (mine.filter((m) => m.createdAt > now - BURST_WINDOW_MS).length >= BURST_COUNT) {
+      throw new ConvexError("Slow down");
+    }
+
     await ctx.db.insert("messages", {
       gameId,
       userId: user._id,
       text: cleanText || undefined,
       gifUrl,
-      createdAt: Date.now(),
+      createdAt: now,
     });
     return null;
   },

@@ -1,4 +1,4 @@
-import { useState, createContext, useContext, useCallback, type ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, useCallback, type ReactNode } from "react";
 
 type ConfirmOptions = {
   title: string;
@@ -41,19 +41,28 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
   const { open, options } = state;
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   return (
     <ConfirmContext.Provider value={{ confirm }}>
       {children}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/70" onClick={handleCancel} />
-          <div className="relative z-10 w-full max-w-sm mx-4 glass rounded-xl">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" className="relative z-10 w-full max-w-sm mx-4 glass rounded-xl">
             <div className="p-6">
-              <h2 className="text-lg font-semibold text-foreground">{options.title}</h2>
+              <h2 id="confirm-title" className="text-lg font-semibold text-foreground">{options.title}</h2>
               <p className="mt-2 text-sm text-zinc-400">{options.message}</p>
             </div>
             <div className="flex justify-end gap-3 p-4 pt-0">
-              <button onClick={handleCancel} className="btn btn-ghost">
+              <button autoFocus onClick={handleCancel} className="btn btn-ghost">
                 {options.cancelText || "Cancel"}
               </button>
               <button onClick={handleConfirm} className={`btn ${options.variant === "destructive" ? "btn-destructive" : "btn-primary"}`}>
