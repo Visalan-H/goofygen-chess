@@ -68,7 +68,8 @@ function App() {
     displayNameRef.current = displayName;
   }, [displayName]);
 
-  // Register on load and after the user stops typing, not on every keystroke
+  // Register on load and after the user stops typing, not on every keystroke. Create and join
+  // register again first, so a tap inside the delay still works.
   useEffect(() => {
     if (name.trim()) localStorage.setItem("chess_name", name);
     const timer = setTimeout(() => {
@@ -86,7 +87,9 @@ function App() {
     const ping = () => {
       const stuck = setTimeout(() => {
         const visible = document.visibilityState === "visible";
-        if (visible && navigator.onLine && convex.connectionState().isWebSocketConnected) window.location.reload();
+        // A reload would wipe a half-typed chat message
+        const typing = document.activeElement instanceof HTMLInputElement && document.activeElement.value !== "";
+        if (visible && !typing && navigator.onLine && convex.connectionState().isWebSocketConnected) window.location.reload();
       }, 10000);
       register({ name: displayNameRef.current, token })
         .catch(() => {})
@@ -178,6 +181,7 @@ function App() {
     if (busy.current) return;
     busy.current = true;
     try {
+      await register({ name: displayName, token });
       const result = await createGame({ token });
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: "w" });
     } catch (err) {
@@ -192,6 +196,7 @@ function App() {
     if (busy.current) return;
     busy.current = true;
     try {
+      await register({ name: displayName, token });
       const result = await joinGame({ token, roomId: code || undefined });
       if (!result) return toast("No challengers yet. Start a game.", "info");
       setCurrentGame({ id: result.gameId, roomId: result.roomId, color: result.color });

@@ -64,7 +64,13 @@ export const join = mutation({
       for (const candidate of waiting) {
         if (candidate.playerWhite === user._id) continue;
         const host = await getSeatPresence(ctx, candidate.playerWhite);
-        if (host.online && host.lastSeen > cutoff) {
+        if (!host.online) {
+          // The cron already marked this host offline, so nobody is coming. Clear the lobby so it
+          // cannot crowd out live ones in the 20-game window.
+          await deleteGameWithMessages(ctx, candidate._id);
+          continue;
+        }
+        if (host.lastSeen > cutoff) {
           game = candidate;
           break;
         }

@@ -16,7 +16,7 @@ npm run dev      # in a second terminal
 - The server owns the game. `games.makeMove` replays the PGN with chess.js and rejects illegal or out-of-turn moves.
 - Leaving a game in progress counts as a resignation.
 - Crons (`convex/crons.ts`) mark users offline when their heartbeat stops, expire lobbies after 30 minutes, end games idle for 2 hours, and delete finished games after 24 hours.
-- The client heartbeats every 20s during a game and every 60s elsewhere, and again when the tab becomes visible or the network returns. `games.getGame` returns each seat's `lastSeen` plus the server clock, and the opponent's bar shows Online, then Disconnected after 90s without a beat.
+- The client heartbeats every 20s during a game and every 60s elsewhere, and again when the tab becomes visible or the network returns. Heartbeats write only a small `presence` table, which exists for a user only while they are online, so they never re-send the game or chat. `games.getPresence` returns each seat's heartbeat stamp, and the opponent's bar shows Online, then Disconnected after 90s without a new stamp.
 - `Layout` shows a reconnecting bar when the Convex socket stays down for 1.5s. Convex reconnects on its own and the game resumes from the stored token.
 - Phones get a one-line chat bar under the board that slides up into a sheet. Landscape and desktop show chat inline.
 - Thrown errors use `ConvexError` so the message reaches the client on a production deployment.
