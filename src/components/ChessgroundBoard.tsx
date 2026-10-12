@@ -139,10 +139,18 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
           className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-black/60"
           onClick={cancel}
         >
-          <div className="flex gap-2 rounded-lg bg-card p-3" onClick={(e) => e.stopPropagation()}>
-            {PIECES.map((p) => (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Choose a promotion piece"
+            className="flex gap-2 rounded-lg bg-card p-3"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.key === "Escape" && cancel()}
+          >
+            {PIECES.map((p, i) => (
               <button
                 key={p.id}
+                autoFocus={i === 0}
                 type="button"
                 aria-label={p.name}
                 onClick={() => pick(p.id)}
