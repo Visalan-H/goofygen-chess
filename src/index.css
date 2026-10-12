@@ -675,11 +675,11 @@ body {
   }
 
   .hero-word {
-    font-size: clamp(2rem, 14vh, 3.5rem);
+    font-size: clamp(1.75rem, 12vh, 3rem);
   }
 
   .home-chair {
-    width: clamp(4rem, 30vh, 7rem);
+    width: clamp(3.5rem, 24vh, 6rem);
   }
 
   .home-hero {
