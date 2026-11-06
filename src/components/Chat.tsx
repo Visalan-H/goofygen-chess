@@ -25,14 +25,20 @@ export function Chat({ gameId, userToken }: ChatProps) {
   const list = useQuery(api.messages.list, { gameId });
   const messages = list ?? [];
 
+  const last = messages[messages.length - 1];
+  const lastId = last?._id;
+
+  // The list is capped, so its length stops changing; the newest id still does
   useEffect(() => {
-    if (messages.length > 0 && scrollRef.current) {
+    if (lastId && scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages.length, open]);
+  }, [lastId, open]);
 
-  // Messages that were already there when the game loaded are not unread, and an open drawer has read everything
-  if (list !== undefined && (seen === null || (open && seen !== list.length))) setSeen(list.length);
+  // Messages that were already there when the game loaded are not unread, and an open drawer has read everything.
+  // Track the newest seen creation time, since the capped list cannot be counted by length.
+  const newest = last?._creationTime ?? 0;
+  if (list !== undefined && (seen === null || (open && seen !== newest))) setSeen(newest);
 
   useEffect(() => {
     if (!open) return;
@@ -43,9 +49,8 @@ export function Chat({ gameId, userToken }: ChatProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const last = messages[messages.length - 1];
   const preview = last ? (last.text ? `${last.sender}: ${last.text}` : `${last.sender} sent a GIF`) : "No messages yet";
-  const unread = open || seen === null ? 0 : Math.max(0, messages.length - seen);
+  const unread = open || seen === null ? 0 : messages.filter((m) => m._creationTime > seen).length;
 
   const handleSend = async () => {
     const msg = text.trim();
