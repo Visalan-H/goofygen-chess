@@ -27,5 +27,5 @@ npm run dev      # in a second terminal
 Backend changes reach production only through `npx convex deploy`. A frontend that reads new fields should tolerate them being missing until that deploy lands.
 
 
-1. Run `npx convex deploy` to push the backend to production.
-2. Deploy the frontend to Vercel with build command `npx convex deploy --cmd "npm run build"` and the `CONVEX_DEPLOY_KEY` environment variable set. That command also sets `VITE_CONVEX_URL` for the build.
+1. Run `npx convex deploy` to push the backend to production. Do this before merging a frontend that calls a new function.
+2. Merge to `main`. Vercel builds the frontend with `tsc && vite build` and reads `VITE_CONVEX_URL` from its environment variables. It never deploys the backend, and no `CONVEX_DEPLOY_KEY` is set on Vercel.
