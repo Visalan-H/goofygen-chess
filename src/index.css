@@ -497,11 +497,15 @@ body {
     display: contents;
   }
 
+  /* The board spans every row, and Chrome gives a spanning item's whole height to the first row,
+     which pushed the player bars and chat off screen. A negative bottom margin of one board width
+     (always at least the board's height) makes its outer height zero while the rows are sized. */
   .game-board {
     grid-column: 1;
     grid-row: 1 / -1;
-    align-self: center;
+    align-self: start;
     justify-self: center;
+    margin-bottom: -100%;
     width: min(100%, calc(100dvh - 8.5rem));
   }
 
