@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 
 // Heartbeats arrive every 20s, but a backgrounded tab may only fire once a minute.
 const GONE_AFTER_MS = 90_000;
-const HINT_AFTER_MS = 120_000;
 const TICK_MS = 5000;
 
 function span(ms: number) {
@@ -16,7 +15,8 @@ type PresenceProps = {
   // The server's heartbeat stamp. Only its changes matter, never its value.
   lastSeen: number;
   online: boolean;
-  canResign: boolean;
+  // Set only for players. The server decides when the opponent is offline.
+  onClaim?: () => void;
 };
 
 // Each new heartbeat stamp remounts the body, which restarts its clock
@@ -24,7 +24,7 @@ export function Presence(props: PresenceProps) {
   return <PresenceBody key={props.lastSeen} {...props} />;
 }
 
-function PresenceBody({ online, canResign }: PresenceProps) {
+function PresenceBody({ online, onClaim }: PresenceProps) {
   // Counts up from when this client saw the stamp, so no clock is compared across machines
   // and the query needs no Date.now().
   const [elapsed, setElapsed] = useState(0);
@@ -49,7 +49,11 @@ function PresenceBody({ online, canResign }: PresenceProps) {
     <span role="status" className="ml-auto flex items-center gap-1.5 text-xs font-medium text-destructive shrink-0">
       <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
       Disconnected{span(age)}
-      {canResign && age > HINT_AFTER_MS && <span className="text-muted-foreground font-normal">You can resign.</span>}
+      {!online && onClaim && (
+        <button onClick={onClaim} className="btn btn-ghost h-7 px-2.5 text-xs">
+          Claim win
+        </button>
+      )}
     </span>
   );
 }

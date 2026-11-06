@@ -12,6 +12,7 @@ const IDLE_TTL_MS = 2 * 60 * 60 * 1000;
 const FINISHED_TTL_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_BATCH = 100;
 const HOST_FRESH_MS = 60 * 1000; // a waiting host heartbeats every 20s
+const CLAIM_AFTER_MS = 3 * 60 * 1000;
 
 const seat = v.object({ gameId: v.id("games"), roomId: v.string(), color: seatColor });
 
@@ -247,6 +248,35 @@ export const leaveGame = mutation({
     } else {
       await ctx.db.patch("games", game._id, { whiteLeft, blackLeft, updatedAt: Date.now() });
     }
+    return null;
+  },
+});
+
+// A player whose opponent vanished can end the game as the winner instead of waiting out the idle cron
+export const claimWin = mutation({
+  args: { token: v.string(), gameId: v.id("games") },
+  returns: v.null(),
+  handler: async (ctx, { token, gameId }) => {
+    const user = await requireUser(ctx, token);
+    const game = await ctx.db.get("games", gameId);
+    if (!game) throw new ConvexError("Game not found");
+
+    const isWhite = game.playerWhite === user._id;
+    const isBlack = game.playerBlack === user._id;
+    if (!isWhite && !isBlack) throw new ConvexError("Not a player");
+    if (game.status !== "in-progress") throw new ConvexError("Game not active");
+
+    const opponentId = isWhite ? game.playerBlack : game.playerWhite;
+    if (!opponentId) throw new ConvexError("Game not active");
+    const opponent = await getSeatPresence(ctx, opponentId);
+    if (opponent.online) throw new ConvexError("Your opponent is still connected");
+    if (opponent.lastSeen > Date.now() - CLAIM_AFTER_MS) throw new ConvexError("Your opponent left less than 3 minutes ago");
+
+    await ctx.db.patch("games", game._id, {
+      status: "finished",
+      winner: isWhite ? "white" : "black",
+      updatedAt: Date.now(),
+    });
     return null;
   },
 });
