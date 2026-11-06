@@ -47,9 +47,33 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
     onMoveRef.current = onMove;
   }, [fen, isMyTurn, color, onMove]);
 
+  // Chessground clears its dests and flips the turn on every drop, so push the full state again
+  function sync() {
+    const chess = new Chess(fenRef.current);
+    const dests = new Map<Key, Key[]>();
+    for (const m of chess.moves({ verbose: true })) {
+      const list = dests.get(m.from);
+      if (list) list.push(m.to);
+      else dests.set(m.from, [m.to]);
+    }
+
+    const side = colorRef.current === "b" ? "black" : "white";
+    cgRef.current?.set({
+      fen: fenRef.current,
+      orientation: side,
+      turnColor: chess.turn() === "w" ? "white" : "black",
+      check: chess.isCheck(),
+      movable: {
+        free: false,
+        dests,
+        color: isMyTurnRef.current && colorRef.current !== "s" ? side : undefined,
+      },
+    });
+  }
+
   function send(move: BoardMove) {
     void Promise.resolve(onMoveRef.current(move)).then((ok) => {
-      if (!ok) cgRef.current?.set({ fen: fenRef.current });
+      if (!ok) sync();
     });
   }
 
@@ -59,7 +83,7 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
   }
 
   function cancel() {
-    cgRef.current?.set({ fen: fenRef.current });
+    sync();
     setPending(null);
   }
 
@@ -96,33 +120,16 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
       cg.destroy();
       cgRef.current = null;
     };
+    // send and sync read only refs, so the mount-once effect never sees stale state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const chess = new Chess(fen);
-    const dests = new Map<Key, Key[]>();
-    for (const m of chess.moves({ verbose: true })) {
-      const list = dests.get(m.from);
-      if (list) list.push(m.to);
-      else dests.set(m.from, [m.to]);
-    }
-
-    const side = color === "b" ? "black" : "white";
-    cgRef.current?.set({
-      fen,
-      orientation: side,
-      turnColor: chess.turn() === "w" ? "white" : "black",
-      check: chess.isCheck(),
-      movable: {
-        free: false,
-        dests,
-        color: isMyTurn && color !== "s" ? side : undefined,
-      },
-    });
+    sync();
   }, [fen, color, isMyTurn]);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="board-wrap" style={{ position: "relative" }}>
       <div
         ref={containerRef}
         className="game-board"
