@@ -2,3 +2,4 @@ dist/
 .env.local
 node_modules/
 .claude/
+CLAUDE.md
