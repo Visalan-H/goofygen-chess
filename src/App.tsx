@@ -40,6 +40,7 @@ function App() {
   const joinGame = useMutation(api.games.join);
   const makeMove = useMutation(api.games.makeMove);
   const leaveGame = useMutation(api.games.leaveGame);
+  const claimWin = useMutation(api.games.claimWin);
 
   const stats = useQuery(api.users.getStats);
   const onlineCount = stats?.browsing ?? 0;
@@ -192,6 +193,18 @@ function App() {
     }
   };
 
+  const handleClaim = async () => {
+    if (!currentGame || busy.current) return;
+    busy.current = true;
+    try {
+      await claimWin({ token, gameId: currentGame.id });
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      busy.current = false;
+    }
+  };
+
   const handleJoin = async (code?: string) => {
     if (!name.trim()) return toast("Enter your name first.", "error");
     if (busy.current) return;
@@ -308,7 +321,7 @@ function App() {
                 </span>
                 {gameState.isCheck && isTopActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
                 {showPresence && presence && topSeen !== undefined && (
-                  <Presence lastSeen={topSeen} online={topOnline ?? false}canResign={!isSpectator} />
+                  <Presence lastSeen={topSeen} online={topOnline ?? false} onClaim={isSpectator ? undefined : () => void handleClaim()} />
                 )}
               </div>
 
@@ -322,7 +335,7 @@ function App() {
                 </span>
                 {gameState.isCheck && isBottomActive && <span className="text-sm font-medium text-destructive ml-auto">In check</span>}
                 {showPresence && presence && isSpectator && bottomSeen !== undefined && (
-                  <Presence lastSeen={bottomSeen} online={bottomOnline ?? false}canResign={false} />
+                  <Presence lastSeen={bottomSeen} online={bottomOnline ?? false} />
                 )}
               </div>
             </div>
