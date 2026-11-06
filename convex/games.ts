@@ -12,7 +12,8 @@ const IDLE_TTL_MS = 2 * 60 * 60 * 1000;
 const FINISHED_TTL_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_BATCH = 100;
 const HOST_FRESH_MS = 60 * 1000; // a waiting host heartbeats every 20s
-const CLAIM_AFTER_MS = 3 * 60 * 1000;
+// Long enough that a locked phone or a train tunnel does not forfeit the game
+const CLAIM_AFTER_MS = 10 * 60 * 1000;
 
 const seat = v.object({ gameId: v.id("games"), roomId: v.string(), color: seatColor });
 
@@ -270,7 +271,8 @@ export const claimWin = mutation({
     if (!opponentId) throw new ConvexError("Game not active");
     const opponent = await getSeatPresence(ctx, opponentId);
     if (opponent.online) throw new ConvexError("Your opponent is still connected");
-    if (opponent.lastSeen > Date.now() - CLAIM_AFTER_MS) throw new ConvexError("Your opponent left less than 3 minutes ago");
+    const waitMs = opponent.lastSeen + CLAIM_AFTER_MS - Date.now();
+    if (waitMs > 0) throw new ConvexError(`You can claim the win in ${Math.ceil(waitMs / 60_000)} min if they stay away`);
 
     await ctx.db.patch("games", game._id, {
       status: "finished",
