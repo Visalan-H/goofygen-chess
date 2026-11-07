@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Chess, type Square } from "chess.js";
 import { Chessground } from "chessground";
 import type { Key } from "chessground/types";
+import { moveFeedback, preloadSounds, type MoveKind } from "../lib/feedback";
 import "chessground/assets/chessground.base.css";
 import "chessground/assets/chessground.cburnett.css";
 
@@ -9,6 +10,7 @@ export type BoardMove = { from: string; to: string; promotion?: string };
 
 type BoardProps = {
   fen: string;
+  pgn: string;
   color: "w" | "b" | "s";
   isMyTurn: boolean;
   // Resolves false when the server rejected the move, so the board can snap back.
@@ -22,7 +24,27 @@ const PIECES = [
   { id: "n", glyph: "♘", name: "Knight" },
 ] as const;
 
-export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
+function moveHistory(pgn: string) {
+  if (!pgn) return [];
+  try {
+    const chess = new Chess();
+    chess.loadPgn(pgn);
+    return chess.history({ verbose: true });
+  } catch {
+    return [];
+  }
+}
+
+// SAN already marks every case: # mate, + check, O-O castle, x capture
+function moveKind(san: string): MoveKind {
+  if (san.endsWith("#")) return "mate";
+  if (san.endsWith("+")) return "check";
+  if (san.startsWith("O-O")) return "castle";
+  if (san.includes("x")) return "capture";
+  return "move";
+}
+
+export function ChessgroundBoard({ fen, pgn, color, isMyTurn, onMove }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cgRef = useRef<ReturnType<typeof Chessground> | null>(null);
   // A pawn move to the last rank waits here until the player picks a piece
@@ -39,6 +61,8 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
   const isMyTurnRef = useRef(isMyTurn);
   const colorRef = useRef(color);
   const onMoveRef = useRef(onMove);
+  const moveCountRef = useRef<number | null>(null);
+  const lastMoveRef = useRef<[Key, Key] | undefined>(undefined);
 
   useEffect(() => {
     fenRef.current = fen;
@@ -63,6 +87,7 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
       orientation: side,
       turnColor: chess.turn() === "w" ? "white" : "black",
       check: chess.isCheck(),
+      lastMove: lastMoveRef.current,
       movable: {
         free: false,
         dests,
@@ -89,6 +114,7 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    preloadSounds();
 
     const cg = Chessground(containerRef.current, {
       coordinates: true,
@@ -123,6 +149,16 @@ export function ChessgroundBoard({ fen, color, isMyTurn, onMove }: BoardProps) {
     // send and sync read only refs, so the mount-once effect never sees stale state
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The PGN keeps the highlight across reloads. Sound only a single new move, so a
+  // reload or rejoin stays silent.
+  useEffect(() => {
+    const moves = moveHistory(pgn);
+    const last = moves[moves.length - 1];
+    lastMoveRef.current = last ? [last.from, last.to] : undefined;
+    if (last && moveCountRef.current === moves.length - 1) moveFeedback(moveKind(last.san));
+    moveCountRef.current = moves.length;
+  }, [pgn]);
 
   useEffect(() => {
     sync();

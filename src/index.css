@@ -155,10 +155,10 @@ cg-board {
   top: 0;
 }
 
-/* The last move gets a white ring so it reads on both square colors */
+/* The last move gets an amber fill plus a ring so it reads on both square colors */
 cg-board square.last-move {
-  background-color: transparent !important;
-  box-shadow: inset 0 0 0 3px rgba(20, 20, 20, 0.55);
+  background-color: rgba(255, 196, 0, 0.5) !important;
+  box-shadow: inset 0 0 0 3px rgba(214, 140, 0, 0.9);
 }
 
 cg-board square.selected {
