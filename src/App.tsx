@@ -7,9 +7,11 @@ import { Layout } from "./components/Layout";
 import { Board } from "./components/Board";
 import { Chat } from "./components/Chat";
 import { generateUUID, errorMessage } from "./lib/utils";
+import { isMuted } from "./lib/feedback";
 import { useToast } from "./components/Toast";
 import { useConfirm } from "./components/Confirm";
 import { Chair } from "./components/Chair";
+import { SoundToggle } from "./components/SoundToggle";
 
 type GameInfo = {
   id: Id<"games">;
@@ -139,7 +141,7 @@ function App() {
   useEffect(() => {
     if (prevStatus.current === "waiting" && seatStatus === "in-progress" && isHost) {
       toast(`${challenger} sat down. Your move.`, "success");
-      navigator.vibrate?.(200);
+      if (!isMuted()) navigator.vibrate?.(200);
     }
     prevStatus.current = seatStatus;
   }, [seatStatus, challenger, isHost, toast]);
@@ -307,6 +309,7 @@ function App() {
                 <span aria-live="polite" className="game-status min-w-0 truncate text-lg font-semibold tracking-tight">{status}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="font-mono text-xs text-zinc-500 tracking-wider">{gameState.roomId}</span>
+                  <SoundToggle />
                   <button onClick={() => void handleLeave()} className="-mr-1 -my-2 px-3 h-10 text-sm font-medium text-zinc-400 hover:text-foreground transition-colors">
                     {leaveButtonText}
                   </button>
@@ -325,7 +328,7 @@ function App() {
                 )}
               </div>
 
-              <Board fen={gameState.fen} color={currentGame.color} isMyTurn={isMyTurn} onMove={handleMove} />
+              <Board fen={gameState.fen} pgn={gameState.pgn} color={currentGame.color} isMyTurn={isMyTurn} onMove={handleMove} />
 
               {/* Bottom player */}
               <div className="player-bar">
